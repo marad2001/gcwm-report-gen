@@ -2,8 +2,6 @@ name: deploy-gcwm-report-gen-lambda
 on:
   push:
     branches: main
-    paths:
-      -'gcwm-report-gen/**'
 
 jobs:
   build:
