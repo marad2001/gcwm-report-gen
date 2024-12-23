@@ -1,0 +1,19 @@
+on:
+  push:
+    branches: main
+
+jobs:
+  build:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@main
+    - name: Deploy code to lambda
+    - uses: qxf2/rust-lambda-action@v1.0.1
+      with:
+        lamdba_directory: .
+        iam_role: ${{ secrets.AWS_IAM_ROLE }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.SKYPE_SENDER_REGION }}
