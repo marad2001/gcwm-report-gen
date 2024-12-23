@@ -29,13 +29,11 @@ jobs:
       - name: Build Lambda
         run: cargo lambda build --release --arm64
 
-      - name: Debug IAM Role
-        run: |
-          echo "IAM Role: [${{ secrets.AWS_IAM_ROLE }}]"
-
       - name: Deploy Lambda
+        with:
+          IAM_ROLE: ${{ secrets.AWS_IAM_ROLE }}
         run: |
-          cargo lambda deploy --iam-role ${{ secrets.AWS_IAM_ROLE }}
+          cargo lambda deploy --iam-role "$IAM_ROLE"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
