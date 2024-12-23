@@ -12,9 +12,9 @@ jobs:
     - name: Deploy code to Lambda
       uses: qxf2/rust-lambda-action@v1.0.1
       with:
-        lambda_directory: '.'
+        lambda_directory: '.\target\lambda\gcwm-report-gen\bootstrap'
         iam_role: ${{ secrets.AWS_IAM_ROLE }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.SKYPE_SENDER_REGION }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           
