@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
     - name: Deploy code to lambda
-    - uses: qxf2/rust-lambda-action@v1.0.1
+      uses: qxf2/rust-lambda-action@v1.0.1
       with:
         lamdba_directory: .
         iam_role: ${{ secrets.AWS_IAM_ROLE }}
