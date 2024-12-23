@@ -1,3 +1,4 @@
+name: deploy-gcwm-report-gen-lambda
 on:
   push:
     branches: main
