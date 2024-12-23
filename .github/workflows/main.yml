@@ -4,11 +4,9 @@ on:
 
 jobs:
   build:
-  
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@main
     - name: Deploy code to lambda
     - uses: qxf2/rust-lambda-action@v1.0.1
       with:
