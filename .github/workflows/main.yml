@@ -3,7 +3,7 @@ on:
   push:
     branches: main
     paths:
-      -'gcwm_report-gen/**'
+      -'gcwm-report-gen/**'
 
 jobs:
   build:
