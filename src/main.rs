@@ -24,7 +24,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
         .status(StatusCode::OK)
         .header("Content-Type", "application/json")
         .body(json!({
-            "message": "Hello Nobody",
+            "message": "Hello World",
             "payload": body,
           }).to_string())
         .map_err(Box::new)?;
