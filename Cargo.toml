@@ -8,3 +8,5 @@ lambda_http = "0.13.0"
 serde_json = "1.0.133"
 tokio = { version = "1", features = ["macros"] }
 serde = "1.0.216"
+http = "1.2.0"
+uuid = { version = "1.11.0", features = ["v4", "serde"] }
