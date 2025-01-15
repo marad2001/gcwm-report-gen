@@ -1,6 +1,11 @@
+use domain::{constrained_types::client_id::{ClientId, IoId}};
+use driven::repository::MainContactAddress;
+use crate::driven::repository::QueryExternalRepository;
 use lambda_http::{http::{Response, StatusCode}, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
 use serde_json::json;
 use http::Method;
+use dotenv::dotenv;
+use std::env;
 
 mod domain;
 mod driven;
@@ -15,6 +20,8 @@ async fn main() -> Result<(), Error> {
 }
 
 pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error> {
+
+    dotenv().ok();
     
     let method = event.method();
     let path_parameters = event.path_parameters();
@@ -39,7 +46,6 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
                             .status(StatusCode::OK)
                             .header("Content-Type", "application/json")
                             .body(json!({
-                                "message": "Hello everyone",
                                 "payload": report
                             }).to_string())
                             .map_err(Box::new)?;

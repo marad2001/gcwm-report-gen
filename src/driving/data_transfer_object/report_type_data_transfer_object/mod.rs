@@ -2,7 +2,7 @@ use couple_annual_review_data_transfer_object::CoupleAnnualReviewReportDataTrans
 use individual_annual_review_data_transfer_object::IndividualAnnualReviewReportDataTransferObject;
 use serde::{Deserialize, Serialize};
 
-pub mod background_data_transfer_object;
+pub mod background_section_data_transfer_objects;
 pub mod individual_annual_review_data_transfer_object;
 pub mod couple_annual_review_data_transfer_object;
 pub mod adviser_data_transfer_object;

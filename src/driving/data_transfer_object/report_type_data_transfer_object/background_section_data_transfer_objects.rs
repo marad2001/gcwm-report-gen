@@ -1,33 +1,42 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnualReviewBackgroundSectionDataTransferObject{
-    meeting_location: MeetingLocationDataTransferObject,
-    addtional_attendees: Vec<AdditionalMeetingAttendeeDataTransferObject>,
-    additional_company_attendees: Vec<AddtionalCompanyMeetingAttendeeDataTransferObject>
+    pub meeting_location: MeetingLocationDataTransferObject,
+    pub additional_attendees: Vec<AdditionalMeetingAttendeeDataTransferObject>,
+    pub additional_company_attendees: Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>,
+    pub meeting_date: NaiveDate
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum MeetingLocationDataTransferObject{
-    Home,
+    Home(HomeMeetingLocationDataTransferObject),
     Office,
-    OtherLocationDataTrasnferObject(OtherLocationDataTransferObject)
+    Teams,
+    OtherLocationDataTransferObject(OtherLocationDataTransferObject)
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeMeetingLocationDataTransferObject{
+    pub town: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherLocationDataTransferObject{
-    other_location: String,
+    pub other_location: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AdditionalMeetingAttendeeDataTransferObject {
-    first_name: String,
-    last_name: String,
-    relationship_to_client: RelationshipToClientDataTransferObject
+    pub first_name: String,
+    pub last_name: String,
+    pub relationship_to_client: RelationshipToClientDataTransferObject
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -41,12 +50,12 @@ pub enum RelationshipToClientDataTransferObject {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherRelationshipToClientDataTransferObject {
-    description_of_relationship: String
+    pub description_of_relationship: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct AddtionalCompanyMeetingAttendeeDataTransferObject {
-    first_name: String,
-    last_name: String
+pub struct AdditionalCompanyMeetingAttendeeDataTransferObject {
+    pub first_name: String,
+    pub last_name: String
 }

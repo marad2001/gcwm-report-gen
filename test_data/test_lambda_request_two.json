@@ -93,9 +93,11 @@
 	},
 	"body": {
         "reportType": {
-            "type": "CoupleAnnualReviewReport",
+            "type": "coupleAnnualReviewReport",
+            "ioIdIndividualOne": "36255082",
             "individualOneFirstName": "Mark",
             "individualOneLastName": "Ashworth",
+            "ioIdIndividualTwo": "36255082",
             "individualTwoFirstName": "Sophie",
             "individualTwoLastName": "Ashworth",
             "adviser": {
@@ -106,9 +108,10 @@
                 "background":  {
                     "type": "annualReview",
                     "meetingLocation": {
-                        "type": "Home"
+                        "type": "Home",
+                        "town": "Halifax"
                     }, 
-                    "addtionalAttendees": [
+                    "additionalAttendees": [
                         {
                             "firstName": "James",
                             "lastName": "Bond",
@@ -117,12 +120,13 @@
                             }
                         } 
                     ],
-                    "addtionalCompanyAttendees": [
+                    "additionalCompanyAttendees": [
                         {
                             "firstName": "Mark",
                             "lastName": "Ashworth"
                         }
-                    ]
+                    ],
+                    "meetingDate": "12-05-2024"
                 }
             }
         }

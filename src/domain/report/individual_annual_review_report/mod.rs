@@ -7,6 +7,7 @@ use crate::domain::constrained_types::{adviser::Adviser, name_string::NameString
 //pub mod individual_annual_review_report_cover_section;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct IndividualAnnualReviewReport {
     individual_one_first_name: NameString,
     individual_one_last_name: NameString,

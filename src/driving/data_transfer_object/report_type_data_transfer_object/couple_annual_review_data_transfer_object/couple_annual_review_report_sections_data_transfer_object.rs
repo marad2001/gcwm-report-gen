@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::driving::data_transfer_object::report_type_data_transfer_object::background_data_transfer_object::BackgroundSectionDataTransferObject;
+use super::couple_annual_review_report_background_section::CoupleAnnualReviewBackgroundSectionDataTransferObject;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 
 pub struct CoupleAnnualReviewReportSectionsDataTransferObject {
-    background: BackgroundSectionDataTransferObject
+    pub background: CoupleAnnualReviewBackgroundSectionDataTransferObject
 }

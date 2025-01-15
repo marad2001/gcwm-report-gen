@@ -10,10 +10,12 @@ use super::traits::ValidatableReport;
 pub mod create_report;
 pub mod report_type;
 pub mod cover_section;
+pub mod contents_section;
 pub mod individual_annual_review_report;
 pub mod couple_annual_review_report;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Report {
     #[serde(with = "uuid::serde::simple")]
     id: uuid::Uuid,
