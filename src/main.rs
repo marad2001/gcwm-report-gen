@@ -1,6 +1,3 @@
-use domain::{constrained_types::client_id::{ClientId, IoId}};
-use driven::repository::MainContactAddress;
-use crate::driven::repository::QueryExternalRepository;
 use lambda_http::{http::{Response, StatusCode}, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
 use serde_json::json;
 use http::Method;

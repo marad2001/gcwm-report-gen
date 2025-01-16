@@ -1,24 +1,25 @@
 use serde::{Deserialize, Serialize};
 
 use crate::domain::constrained_types::meeting_date::MeetingDate;
-use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_background_section::CoupleAnnualReviewBackgroundSectionDataTransferObject;
+use crate::driving::data_transfer_object::report_type_data_transfer_object::individual_annual_review_data_transfer_object::individual_annual_review_report_background_section::IndividualAnnualReviewBackgroundSectionDataTransferObject;
+
 use crate::domain::report::background_section::{MeetingLocation, AdditionalMeetingAttendee, AdditionalCompanyMeetingAttendee, RelationshipToClient};
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CoupleAnnualReviewReportBackgroundSection {
+pub struct IndividualAnnualReviewReportBackgroundSection {
     background: String
 }
 
-impl CoupleAnnualReviewReportBackgroundSection {
-    pub fn new(unvalidated_couple_annual_review_report_background_section: CoupleAnnualReviewBackgroundSectionDataTransferObject) -> Result<Self, String> {
+impl IndividualAnnualReviewReportBackgroundSection {
+    pub fn new(unvalidated_individual_annual_review_report_background_section: IndividualAnnualReviewBackgroundSectionDataTransferObject) -> Result<Self, String> {
 
-        let meeting_location = MeetingLocation::try_from(unvalidated_couple_annual_review_report_background_section.meeting_location)?;
+        let meeting_location = MeetingLocation::try_from(unvalidated_individual_annual_review_report_background_section.meeting_location)?;
 
-        let meeting_date = MeetingDate::try_from(unvalidated_couple_annual_review_report_background_section.meeting_date.format("%d/%m/%Y").to_string())?.formatted_day_month();
+        let meeting_date = MeetingDate::try_from(unvalidated_individual_annual_review_report_background_section.meeting_date.format("%d/%m/%Y").to_string())?.formatted_day_month();
         
-        let additional_attendees: Result<Vec<_>, _> = unvalidated_couple_annual_review_report_background_section
+        let additional_attendees: Result<Vec<_>, _> = unvalidated_individual_annual_review_report_background_section
             .additional_attendees
             .iter()
             .map(|additional_attendee_data_transfer_object| AdditionalMeetingAttendee::try_from(additional_attendee_data_transfer_object.clone()))
@@ -26,7 +27,7 @@ impl CoupleAnnualReviewReportBackgroundSection {
 
         let additional_attendees = additional_attendees?;
         
-        let additional_company_attendees: Result<Vec<_>,_> = unvalidated_couple_annual_review_report_background_section
+        let additional_company_attendees: Result<Vec<_>,_> = unvalidated_individual_annual_review_report_background_section
             .additional_company_attendees
             .iter()
             .map(|additional_company_meeting_attendee_data_transfer_object| AdditionalCompanyMeetingAttendee::try_from(additional_company_meeting_attendee_data_transfer_object.clone()))
@@ -37,19 +38,19 @@ impl CoupleAnnualReviewReportBackgroundSection {
         // Determine the greeting and location text
         let (greeting_text, location_text) = match meeting_location {
             MeetingLocation::Teams => (
-                "It was lovely to speak to you both".to_string(),
+                "It was lovely to speak to you".to_string(),
                 "our virtual Teams meeting".to_string()
             ),
             MeetingLocation::Home(home) => (
-                "It was lovely to see you both".to_string(),
+                "It was lovely to see you".to_string(),
                 format!("your home in {}", home.town)
             ),
             MeetingLocation::Office => (
-                "It was lovely to see you both".to_string(),
+                "It was lovely to see you".to_string(),
                 "the office".to_string()
             ),
             MeetingLocation::OtherLocation(other) => (
-                "It was lovely to see you both".to_string(),
+                "It was lovely to see you".to_string(),
                 format!("{}", other.other_location)
             ),
         };
@@ -97,4 +98,3 @@ impl CoupleAnnualReviewReportBackgroundSection {
     }
 
 }
-

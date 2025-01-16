@@ -91,7 +91,8 @@
 		"requestTimeEpoch": 1589522469693,
 		"apiId": "gy415nuibc"
 	},
-	"body": "{\"reportType\":{\"type\":\"coupleAnnualReviewReport\",\"ioIdIndividualOne\":\"36255082\",\"individualOneFirstName\":\"Mark\",\"individualOneLastName\":\"Ashworth\",\"ioIdIndividualTwo\":\"36255082\",\"individualTwoFirstName\":\"Sophie\",\"individualTwoLastName\":\"Ashworth\",\"adviser\":{\"adviserFirstName\":\"Martin\",\"adviserLastName\":\"Walls\"},\"sections\":{\"background\":{\"type\":\"annualReview\",\"meetingLocation\":{\"type\":\"Home\",\"town\":\"Halifax\"},\"additionalAttendees\":[{\"firstName\":\"James\",\"lastName\":\"Bond\",\"relationshipToClient\":{\"type\":\"Accountant\"}}],\"additionalCompanyAttendees\":[{\"firstName\":\"Mark\",\"lastName\":\"Ashworth\"}],\"meetingDate\":\"2024-05-12\"}}}}"
+	"body": "{\"reportType\":{\"type\":\"individualAnnualReviewReport\",\"individualOneFirstName\":\"Mark\",\"individualOneLastName\":\"Ashworth\",\"adviser\":{\"adviserFirstName\":\"Martin\",\"adviserLastName\":\"Walls\"},\"sections\":{\"background\":{\"type\":\"annualReview\",\"meetingLocation\":{\"type\":\"Home\",\"town\":\"Halifax\"},\"additionalAttendees\":[{\"firstName\":\"James\",\"lastName\":\"Bond\",\"relationshipToClient\":{\"type\":\"Accountant\"}}],\"additionalCompanyAttendees\":[{\"firstName\":\"Adam\",\"lastName\":\"Price\"}],\"meetingDate\":\"2024-05-12\"}}}}"
+
 
 
 

@@ -17,10 +17,8 @@ pub struct CoupleAnnualReviewReport {
 
 impl CoupleAnnualReviewReport {
     pub fn new(
-        unvalidated_io_id_individual_one: String,
         unvalidated_individual_one_first_name: String,
         unvalidated_individual_one_last_name: String,
-        unvalidated_io_id_individual_two: String,
         unvalidated_individual_two_first_name: String,
         unvalidated_individual_two_last_name: String,
         unvalidated_adviser_first_name: String,

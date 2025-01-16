@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::domain::constrained_types::name_string::NameString;
+use crate::domain::report::background_section::BackgroundSection;
 use crate::domain::report::cover_section::CoverSection;
 use crate::domain::report::contents_section::ContentsSection;
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_background_section::CoupleAnnualReviewReportBackgroundSection;
@@ -16,7 +17,7 @@ pub struct CoupleAnnualReviewReportSections {
     cover: CoverSection,
     contents: ContentsSection,
     // executive_summary: ExecutiveSummarySection
-    background: CoupleAnnualReviewReportBackgroundSection
+    background: BackgroundSection
 }
 
 impl CoupleAnnualReviewReportSections {
@@ -44,7 +45,7 @@ impl CoupleAnnualReviewReportSections {
         Ok(Self {
             cover: couple_annual_review_report_cover_section,
             contents: ContentsSection::AnnualReviewReportContentsSection(AnnualReviewReportContentsSection::new()?),
-            background: CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?
+            background: BackgroundSection::CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?)
         })
 
     }
