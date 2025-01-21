@@ -1,3 +1,4 @@
+use std::fmt;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +18,17 @@ pub enum MeetingLocationDataTransferObject{
     Office,
     Teams,
     OtherLocationDataTransferObject(OtherLocationDataTransferObject)
+}
+
+impl fmt::Display for MeetingLocationDataTransferObject {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MeetingLocationDataTransferObject::Home(home) => write!(f, "{}", home.town),
+            MeetingLocationDataTransferObject::Office => write!(f, "office"),
+            MeetingLocationDataTransferObject::Teams => write!(f, "Microsoft Teams"),
+            MeetingLocationDataTransferObject::OtherLocationDataTransferObject(other) => write!(f, "{}", other.other_location),
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

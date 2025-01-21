@@ -91,10 +91,6 @@
 		"requestTimeEpoch": 1589522469693,
 		"apiId": "gy415nuibc"
 	},
-	"body": "{\"reportType\":{\"type\":\"individualAnnualReviewReport\",\"individualOneFirstName\":\"Mark\",\"individualOneLastName\":\"Ashworth\",\"adviser\":{\"adviserFirstName\":\"Martin\",\"adviserLastName\":\"Walls\"},\"sections\":{\"background\":{\"type\":\"annualReview\",\"meetingLocation\":{\"type\":\"Home\",\"town\":\"Halifax\"},\"additionalAttendees\":[{\"firstName\":\"James\",\"lastName\":\"Bond\",\"relationshipToClient\":{\"type\":\"Accountant\"}}],\"additionalCompanyAttendees\":[{\"firstName\":\"Adam\",\"lastName\":\"Price\"}],\"meetingDate\":\"2024-05-12\"}}}}"
-
-
-
-
+	"body": "{\"reportType\":{\"type\":\"coupleAnnualReviewReport\",\"individualOneFirstName\":\"Mark\",\"individualOneLastName\":\"Ashworth\",\"individualTwoFirstName\":\"Sophie\",\"individualTwoLastName\":\"Ashworth\",\"adviser\":{\"adviserFirstName\":\"Martin\",\"adviserLastName\":\"Walls\"},\"sections\":{\"background\":{\"type\":\"annualReview\",\"meetingLocation\":{\"type\":\"Home\",\"town\":\"Halifax\"},\"additionalAttendees\":[{\"firstName\":\"James\",\"lastName\":\"Bond\",\"relationshipToClient\":{\"type\":\"Accountant\"}}],\"additionalCompanyAttendees\":[{\"firstName\":\"Mark\",\"lastName\":\"Ashworth\"}],\"meetingDate\":\"2024-05-12\"},\"current_circumstances\":{\"lastMeetingDate\":\"2023-06-12\",\"lastReviewReportDate\":\"2023-08-02\",\"isChangeInCircumstances\":{\"type\":\"changeInCircumstances\",\"changeInCircumstances\":[\"I got loads of money\",\"Then I lost it all\",\"Then I got it back again\"]}}}}}"
 
 }

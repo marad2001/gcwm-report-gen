@@ -1,23 +1,25 @@
 use serde::{Deserialize, Serialize};
 
-pub mod couple_annual_review_report_sections_data_transfer_object;
-pub mod couple_annual_review_report_background_section_dto;
-pub mod couple_annual_review_report_current_circumstances_section_dto;
+pub mod couple_new_report_sections_dto;
+pub mod couple_new_report_background_section_dto;
+pub mod couple_new_report_current_circumstances_section_dto;
 
-use crate::{domain::{report::{couple_annual_review_report::CoupleAnnualReviewReport, report_type::ReportType}, traits::ValidatableReport}, driving::data_transfer_object::report_type_data_transfer_object::adviser_data_transfer_object::AdviserDataTransferObject};
+use crate::domain::{report::{couple_new_report::CoupleNewReport, report_type::ReportType}, traits::ValidatableReport};
+
+use super::adviser_data_transfer_object::AdviserDataTransferObject;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CoupleAnnualReviewReportDataTransferObject {
+pub struct CoupleNewReportDto {
     pub individual_one_first_name: String,
     pub individual_one_last_name: String,
     pub individual_two_first_name: String,
     pub individual_two_last_name: String,
     pub adviser: AdviserDataTransferObject,
-    pub sections: couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject
+    pub sections: couple_new_report_sections_dto::CoupleNewReportSectionsDto
 }
 
-impl ValidatableReport for CoupleAnnualReviewReportDataTransferObject {
+impl ValidatableReport for CoupleNewReportDto {
     
     fn validate_data_transfer_object_data(&self) -> Result<(), String> {
 
@@ -35,7 +37,7 @@ impl ValidatableReport for CoupleAnnualReviewReportDataTransferObject {
 
     fn into_report_type(self) -> Result<ReportType, String> {
 
-        let report = CoupleAnnualReviewReport::new(
+        let report = CoupleNewReport::new(
             self.individual_one_first_name,
             self.individual_one_last_name,
             self.individual_two_first_name,
@@ -45,7 +47,7 @@ impl ValidatableReport for CoupleAnnualReviewReportDataTransferObject {
             self.sections
         );
         
-        Ok(ReportType::CoupleAnnualReviewReport(report?))
+        Ok(ReportType::CoupleNewReport(report?))
 
     }
 

@@ -37,6 +37,18 @@ pub fn create_report(data_transfer_object: ReportTypeDataTransferObject) -> Resu
             // TODO - persist to repository
 
         }
+        ReportTypeDataTransferObject::CoupleNewReportDto(couple_new_report_dto) => {
+            
+            // TODO - check for existing reports with similar names and dates of contruction - get response to continue
+            
+            let report = Report::new(couple_new_report_dto)
+            .map_err(|e| CreateError::InvalidData(e))?;
+            
+            Ok(report)
+
+            // TODO - persist to repository
+
+        }
     }
     
     

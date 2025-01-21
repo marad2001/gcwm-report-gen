@@ -8,7 +8,9 @@ use crate::domain::report::couple_annual_review_report::couple_annual_review_rep
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_cover_section::CoupleAnnualReviewReportCoverSection;
 use crate::domain::report::contents_section::AnnualReviewReportContentsSection;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject;
+use crate::domain::report::current_circumstances_section::CurrentCircumstancesSection;
 
+use super::couple_annual_review_report_current_circumstances_section::CoupleAnnualReviewReportCurrentCircumstancesSection;
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -17,7 +19,8 @@ pub struct CoupleAnnualReviewReportSections {
     cover: CoverSection,
     contents: ContentsSection,
     // executive_summary: ExecutiveSummarySection
-    background: BackgroundSection
+    background: BackgroundSection,
+    current_circumstances: CurrentCircumstancesSection
 }
 
 impl CoupleAnnualReviewReportSections {
@@ -42,10 +45,23 @@ impl CoupleAnnualReviewReportSections {
             )?
         );
 
+        let current_circumstances_section = CurrentCircumstancesSection::CoupleAnnualReviewReportCurrentCircumstancesSection(
+            CoupleAnnualReviewReportCurrentCircumstancesSection::new(
+                validated_individual_one_first_name,
+                validated_individual_two_first_name,
+                unvalidated_sections.current_circumstances.last_review_report_date,
+                unvalidated_sections.current_circumstances.last_meeting_date,
+                unvalidated_sections.current_circumstances.is_change_in_circumstances,
+                unvalidated_sections.current_circumstances.couple_objectives,
+                unvalidated_sections.current_circumstances.is_risk_tolerance_change
+            )?
+        );
+
         Ok(Self {
             cover: couple_annual_review_report_cover_section,
             contents: ContentsSection::AnnualReviewReportContentsSection(AnnualReviewReportContentsSection::new()?),
-            background: BackgroundSection::CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?)
+            background: BackgroundSection::CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?),
+            current_circumstances: current_circumstances_section
         })
 
     }

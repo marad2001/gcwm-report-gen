@@ -2,7 +2,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::constrained_types::{constrained_string_200::ConstrainedString200, name_string::NameString};
-use super::couple_annual_review_report::couple_annual_review_report_background_section::CoupleAnnualReviewReportBackgroundSection;
+use super::{couple_annual_review_report::couple_annual_review_report_background_section::CoupleAnnualReviewReportBackgroundSection, couple_new_report::couple_new_report_background_section::CoupleNewReportBackgroundSection};
 use super::individual_annual_review_report::individual_annual_review_report_background_section::IndividualAnnualReviewReportBackgroundSection;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::background_section_data_transfer_objects::{MeetingLocationDataTransferObject, AdditionalCompanyMeetingAttendeeDataTransferObject, AdditionalMeetingAttendeeDataTransferObject, RelationshipToClientDataTransferObject, OtherRelationshipToClientDataTransferObject};
 
@@ -10,7 +10,8 @@ use crate::driving::data_transfer_object::report_type_data_transfer_object::back
 #[serde(untagged)]
 pub enum BackgroundSection {
     CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection),
-    IndividualAnnualReviewBackgroundSection(IndividualAnnualReviewReportBackgroundSection)
+    IndividualAnnualReviewBackgroundSection(IndividualAnnualReviewReportBackgroundSection),
+    CoupleNewReportBackgroundSection(CoupleNewReportBackgroundSection)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
