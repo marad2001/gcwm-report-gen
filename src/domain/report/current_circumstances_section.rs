@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
-use crate::{domain::{constrained_types::{constrained_string_1000::ConstrainedString1000, name_string::NameString}, report::couple_annual_review_report::couple_annual_review_report_current_circumstances_section::CoupleAnnualReviewReportCurrentCircumstancesSection}, driving::data_transfer_object::report_type_data_transfer_object::current_circumstances_section_dto::{CurrentCircumstancesSectionDto, IsChangeInCircumstancesDto, IsChangeRiskToleranceDto}};
+use crate::{domain::{constrained_types::{constrained_string_1000::ConstrainedString1000, name_string::NameString}, report::couple_annual_review_report::couple_annual_review_report_current_circumstances_section::CoupleAnnualReviewReportCurrentCircumstancesSection}, driving::data_transfer_object::report_type_data_transfer_object::current_circumstances_section_dto::{CoupleIsChangeRiskToleranceDto, CurrentCircumstancesSectionDto, IsChangeInCircumstancesDto, IsChangeRiskToleranceDto}};
 
 use super::risk_assessment::RiskProfile;
 
@@ -49,6 +49,24 @@ impl TryFrom<IsChangeInCircumstancesDto> for IsChangeInCircumstances {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangeInCircumstances(pub Vec<ConstrainedString1000>);
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CoupleIsChangeRiskTolerance {
+    pub client_1: IsChangeRiskTolerance,
+    pub client_2: IsChangeRiskTolerance
+}
+
+impl TryFrom<CoupleIsChangeRiskToleranceDto> for CoupleIsChangeRiskTolerance {
+    type Error = String;
+
+    fn try_from(value: CoupleIsChangeRiskToleranceDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            client_1: IsChangeRiskTolerance::try_from(value.client_1)?,
+            client_2: IsChangeRiskTolerance::try_from(value.client_2)?
+        })
+    }
+}
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

@@ -7,7 +7,7 @@ use crate::domain::constrained_types::retirement_year::RetirementYear;
 use crate::domain::constrained_types::constrained_string_1000::ConstrainedString1000;
 use crate::domain::constrained_types::constrained_string_20::ConstrainedString20;
 
-use crate::driving::data_transfer_object::report_type_data_transfer_object::objectives_dto::{ChangeInObjectivesDto, CoupleObjectivesAnnualReviewDto, InRetirementIncomeObjectiveDto, IncomeObjectiveYearDto, ObjectiveTypeDto, OtherObjectiveDto};
+use crate::driving::data_transfer_object::report_type_data_transfer_object::objectives_dto::{CapitalProtectionObjectiveDto, ChangeInObjectivesDto, CoupleObjectivesAnnualReviewDto, IhtObjectiveDto, InRetirementIncomeObjectiveDto, IncomeObjectiveYearDto, ObjectiveTypeDto, OtherObjectiveDto};
 use crate::driving::data_transfer_object::report_type_data_transfer_object::risk_assessment_dto::RiskProfileDto;
 
 use super::risk_assessment::RiskProfile;
@@ -24,12 +24,19 @@ impl TryFrom<CoupleObjectivesAnnualReviewDto> for CoupleObjectivesAnnualReview {
     type Error = String;
 
     fn try_from(value: CoupleObjectivesAnnualReviewDto) -> Result<Self, Self::Error> {
-        // Validate that the provided objectives meet the required conditions
-        if (value.client_1_objectives.is_none() || value.client_2_objectives.is_none()) 
-            && value.shared_objectives.is_none() 
+        // Validate that the provided objectives meet the required conditions:
+        // 1. The case is invalid if only one of `client_1_objectives` or `client_2_objectives`
+        //    is present (exclusive OR), and `shared_objectives` is None.
+        // 2. The case is also invalid if all three fields (`client_1_objectives`, 
+        //    `client_2_objectives`, and `shared_objectives`) are None.
+        if (value.client_1_objectives.is_some() ^ value.client_2_objectives.is_some())
+            && value.shared_objectives.is_none()
+            || (value.client_1_objectives.is_none()
+                && value.client_2_objectives.is_none()
+                && value.shared_objectives.is_none())
         {
             return Err(String::from(
-                "Couple objectives must have either a shared objective, or both individuals must have at least one objective.",
+                "Couple objectives must have either shared objectives, or objectives for both individuals, or both.",
             ));
         }
 
@@ -93,8 +100,8 @@ impl TryFrom<ChangeInObjectivesDto> for ChangeInObjectives {
 pub enum ObjectiveType {
     IncomeObjectiveYear(IncomeObjectiveYear),
     InRetirementIncomeObjective(InRetirementIncomeObjective),
-    CapitalProtectionObjective(RiskProfile),
-    IhtObjective(RiskProfile),
+    CapitalProtectionObjective(CapitalProtectionObjective),
+    IhtObjective(IhtObjective),
     OtherObjective(OtherObjective)
 }
 
@@ -106,8 +113,12 @@ impl TryFrom<ObjectiveTypeDto> for ObjectiveType {
             ObjectiveTypeDto::IncomeObjectiveYear(income_objective_dto) => {
                 Ok(Self::IncomeObjectiveYear(IncomeObjectiveYear::try_from(income_objective_dto)?))
             }
-            ObjectiveTypeDto::CapitalProtectionObjective(risk_proflie) => Ok(ObjectiveType::CapitalProtectionObjective(RiskProfile::try_from(risk_proflie)?)),
-            ObjectiveTypeDto::IhtObjective(risk_profile) => Ok(ObjectiveType::IhtObjective(RiskProfile::try_from(risk_profile)?)),
+            ObjectiveTypeDto::CapitalProtectionObjective(capital_protection_objective_dto) => {
+                Ok(Self::CapitalProtectionObjective(CapitalProtectionObjective::try_from(capital_protection_objective_dto)?))
+            }
+            ObjectiveTypeDto::IhtObjective(iht_objective_dto) => {
+                Ok(Self::IhtObjective(IhtObjective::try_from(iht_objective_dto)?))
+            }
             ObjectiveTypeDto::OtherObjective(other_objective_dto) => {
                 Ok(Self::OtherObjective(OtherObjective::try_from(other_objective_dto)?))
             }
@@ -210,6 +221,38 @@ impl TryFrom<OtherObjectiveDto> for OtherObjective {
             objective: ConstrainedString1000::try_from(other_objective_dto.objective)?,
             objective_summary: ConstrainedString20::try_from(other_objective_dto.objective_summary)?,
             linked_risk_profile: RiskProfile::try_from(other_objective_dto.linked_risk_profile)?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CapitalProtectionObjective {
+    pub linked_risk_profile: RiskProfile
+}
+
+impl TryFrom<CapitalProtectionObjectiveDto> for CapitalProtectionObjective {
+    type Error = String;
+
+    fn try_from(capital_protection_objective_dto: CapitalProtectionObjectiveDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            linked_risk_profile: RiskProfile::try_from(capital_protection_objective_dto.linked_risk_profile)?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct IhtObjective {
+    pub linked_risk_profile: RiskProfile
+}
+
+impl TryFrom<IhtObjectiveDto> for IhtObjective {
+    type Error = String;
+
+    fn try_from(capital_protection_objective_dto: IhtObjectiveDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            linked_risk_profile: RiskProfile::try_from(capital_protection_objective_dto.linked_risk_profile)?
         })
     }
 }

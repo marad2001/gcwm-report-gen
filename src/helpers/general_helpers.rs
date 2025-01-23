@@ -67,10 +67,10 @@ pub fn construct_objective_bullet_points(objective_types: &Vec<ObjectiveType>) -
             ObjectiveType::IncomeObjectiveYear(income_objective_year) => {
                 objectives_bullet_points.push(
                     format!(
-                        "Generate {} retirement income stream, {},  inflation adjusted from {} until mortality.", 
+                        "Generate {} retirement income stream, {}, inflation adjusted from {} until mortality.", 
                         income_objective_year.annual_income,
                         income_objective_year.frequency.to_string(),
-                        income_objective_year.from_year
+                        income_objective_year.from_year.value()
                     )
                 );
             }
@@ -117,14 +117,14 @@ pub fn construct_objective_to_risk_profile_couple_client_1_or_2_bullet_points(cl
                     format!("{} - Retirement income objective: {}", client_name, obj.linked_risk_profile.to_string()).to_string()
                 )
             }
-            ObjectiveType::CapitalProtectionObjective(risk_profile) => {
+            ObjectiveType::CapitalProtectionObjective(obj) => {
                 objective_to_risk_profile_bullet_points.push(
-                    format!("{} - Capital protection objective: {}", client_name, risk_profile.to_string()).to_string()
+                    format!("{} - Capital protection objective: {}", client_name, obj.linked_risk_profile.to_string()).to_string()
                 )
             }
-            ObjectiveType::IhtObjective(risk_profile) => {
+            ObjectiveType::IhtObjective(obj) => {
                 objective_to_risk_profile_bullet_points.push(
-                    format!("{} - Inheritance Tax mitigation objective: {}", client_name, risk_profile.to_string()).to_string()
+                    format!("{} - Inheritance Tax mitigation objective: {}", client_name, obj.linked_risk_profile.to_string()).to_string()
                 )
             }
             ObjectiveType::OtherObjective(obj) => {
@@ -157,14 +157,14 @@ pub fn construct_objective_to_risk_profile_couple_shared_bullet_points(
                         format!("Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
-                ObjectiveType::CapitalProtectionObjective(risk_profile) => {
+                ObjectiveType::CapitalProtectionObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
-                        format!("Capital protection objective: {}", risk_profile.to_string()).to_string()
+                        format!("Capital protection objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
-                ObjectiveType::IhtObjective(risk_profile) => {
+                ObjectiveType::IhtObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
-                        format!("Inheritance Tax mitigation objective: {}", risk_profile.to_string()).to_string()
+                        format!("Inheritance Tax mitigation objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
                 ObjectiveType::OtherObjective(obj) => {
@@ -187,14 +187,14 @@ pub fn construct_objective_to_risk_profile_couple_shared_bullet_points(
                         format!("Joint - Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
-                ObjectiveType::CapitalProtectionObjective(risk_profile) => {
+                ObjectiveType::CapitalProtectionObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
-                        format!("Joint - Capital protection objective: {}", risk_profile.to_string()).to_string()
+                        format!("Joint - Capital protection objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
-                ObjectiveType::IhtObjective(risk_profile) => {
+                ObjectiveType::IhtObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
-                        format!("Joint - Inheritance Tax mitigation objective: {}", risk_profile.to_string()).to_string()
+                        format!("Joint - Inheritance Tax mitigation objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
                 }
                 ObjectiveType::OtherObjective(obj) => {

@@ -12,7 +12,7 @@ pub struct CoupleObjectivesAnnualReviewDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "objectives")]
 pub enum ChangeInObjectivesDto {
     NoChangeInObjectives(Vec<ObjectiveTypeDto>),
     ChangeInObjectives(Vec<ObjectiveTypeDto>)
@@ -24,8 +24,8 @@ pub enum ChangeInObjectivesDto {
 pub enum ObjectiveTypeDto {
     IncomeObjectiveYear(IncomeObjectiveYearDto),
     InRetirementIncomeObjective(InRetirementIncomeObjectiveDto),
-    CapitalProtectionObjective(RiskProfileDto),
-    IhtObjective(RiskProfileDto),
+    CapitalProtectionObjective(CapitalProtectionObjectiveDto),
+    IhtObjective(IhtObjectiveDto),
     OtherObjective(OtherObjectiveDto)
 }
 
@@ -51,5 +51,17 @@ pub struct InRetirementIncomeObjectiveDto {
 pub struct OtherObjectiveDto {
     pub objective: String,
     pub objective_summary: String,
+    pub linked_risk_profile: RiskProfileDto
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct IhtObjectiveDto {
+    pub linked_risk_profile: RiskProfileDto
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CapitalProtectionObjectiveDto {
     pub linked_risk_profile: RiskProfileDto
 }

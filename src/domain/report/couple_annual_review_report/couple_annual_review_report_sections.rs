@@ -53,7 +53,7 @@ impl CoupleAnnualReviewReportSections {
                 unvalidated_sections.current_circumstances.last_meeting_date,
                 unvalidated_sections.current_circumstances.is_change_in_circumstances,
                 unvalidated_sections.current_circumstances.couple_objectives,
-                unvalidated_sections.current_circumstances.is_risk_tolerance_change
+                unvalidated_sections.current_circumstances.couple_is_risk_tolerance_change
             )?
         );
 

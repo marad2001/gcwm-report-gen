@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::constrained_types::frequency::Frequency;
 use crate::domain::constrained_types::last_review_report_date::LastReviewReportAndMeetingDate;
 use crate::domain::constrained_types::name_string::NameString;
+use crate::domain::report::current_circumstances_section::CoupleIsChangeRiskTolerance;
 use crate::domain::report::current_circumstances_section::IsChangeInCircumstances;
 use crate::domain::report::current_circumstances_section::IsChangeRiskTolerance;
 use crate::domain::report::objectives::ChangeInObjectives;
@@ -13,6 +14,7 @@ use crate::domain::report::objectives::CoupleObjectivesAnnualReview;
 use crate::domain::report::objectives::ObjectiveType;
 
 use crate::domain::report::risk_assessment::RiskProfile;
+use crate::driving::data_transfer_object::report_type_data_transfer_object::current_circumstances_section_dto::CoupleIsChangeRiskToleranceDto;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::current_circumstances_section_dto::IsChangeInCircumstancesDto;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::current_circumstances_section_dto::IsChangeRiskToleranceDto;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::objectives_dto::ChangeInObjectivesDto;
@@ -51,14 +53,14 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
         last_meeting_date: NaiveDate,
         is_change_in_circumstances: IsChangeInCircumstancesDto,
         couple_objectives: CoupleObjectivesAnnualReviewDto,
-        is_risk_tolerance_change: IsChangeRiskToleranceDto,
+        couple_is_risk_tolerance_change: CoupleIsChangeRiskToleranceDto,
     ) -> Result<Self, String> {
 
-        let last_meeting_date = LastReviewReportAndMeetingDate::try_from(last_meeting_date.to_string())?.formatted_day_month_year();
-        let last_annual_review_report = LastReviewReportAndMeetingDate::try_from(last_review_report_date.to_string())?;
+        let last_meeting_date = LastReviewReportAndMeetingDate::try_from(last_meeting_date.format("%d/%m/%Y").to_string())?.formatted_day_month_year();
+        let last_annual_review_report = LastReviewReportAndMeetingDate::try_from(last_review_report_date.format("%d/%m/%Y").to_string())?.formatted_day_month_year();
         let is_change_in_circumstances = IsChangeInCircumstances::try_from(is_change_in_circumstances)?;
         let couple_objectives = CoupleObjectivesAnnualReview::try_from(couple_objectives)?;
-        let is_risk_tolerance_change = IsChangeRiskTolerance::try_from(is_risk_tolerance_change)?;
+        let couple_is_risk_tolerance_change = CoupleIsChangeRiskTolerance::try_from(couple_is_risk_tolerance_change)?;
         let extracted_objectives = extract_objectives_from_couple_objectives_annual_review(&couple_objectives);
         let objectives_bullet_points_introduction = String::from("To confirm, those objectives are as follows:");
 
@@ -147,25 +149,25 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
                 match (couple_objectives.shared_objectives.unwrap(), couple_objectives.client_2_objectives.unwrap()) {
                     (ChangeInObjectives::ChangeInObjectives(_), ChangeInObjectives::ChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified changes in both your shared finanical objectives and, {}, your personal finanical objectives.",
+                            "Additionally, we identified changes in both your shared finanical objectives and, {}, your personal finanical objectives.",
                             client_2_first_name
                         )
                     }
                     (ChangeInObjectives::NoChangeInObjectives(_), ChangeInObjectives::ChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified there were no changes in your shared finanical objectives.  However, {}, your personal finanical objectives have changed.",
+                            "Additionally, we identified there were no changes in your shared finanical objectives.  However, {}, your personal finanical objectives have changed.",
                             client_2_first_name
                         )
                     }
                     (ChangeInObjectives::ChangeInObjectives(_), ChangeInObjectives::NoChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified changes in your shared objectives.  However, {}, your personal finanical objectives remain the same.",
+                            "Additionally, we identified changes in your shared objectives.  However, {}, your personal finanical objectives remain the same.",
                             client_2_first_name
                         )
                     }
                     (ChangeInObjectives::NoChangeInObjectives(_), ChangeInObjectives::NoChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we agreed ther have been no changes in your financial objectives"
+                            "Additionally, we agreed there have been no changes in your financial objectives"
                         )
                     }
                 }
@@ -173,25 +175,25 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
                 match (couple_objectives.shared_objectives.unwrap(), couple_objectives.client_1_objectives.unwrap()) {
                     (ChangeInObjectives::ChangeInObjectives(_), ChangeInObjectives::ChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified changes in both your shared finanical objectives and, {}, your personal finanical objectives.",
+                            "Additionally, we identified changes in both your shared finanical objectives and, {}, your personal finanical objectives.",
                             client_1_first_name
                         )
                     }
                     (ChangeInObjectives::NoChangeInObjectives(_), ChangeInObjectives::ChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified there were no changes in your shared finanical objectives.  However, {}, your personal finanical objectives have changed.",
+                            "Additionally, we identified there were no changes to your shared finanical objectives.  However, {}, your personal finanical objectives have changed.",
                             client_1_first_name
                         )
                     }
                     (ChangeInObjectives::ChangeInObjectives(_), ChangeInObjectives::NoChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we identified changes in your shared objectives.  However, {}, your personal finanical objectives remain the same.",
+                            "Additionally, we identified changes in your shared objectives.  However, {}, your personal finanical objectives remain the same.",
                             client_1_first_name
                         )
                     }
                     (ChangeInObjectives::NoChangeInObjectives(_), ChangeInObjectives::NoChangeInObjectives(_)) => {
                         format!(
-                            "Addtionally, we agreed ther have been no changes in your financial objectives"
+                            "Additionally, we agreed there have been no changes in your financial objectives"
                         )
                     }
                 }
@@ -224,15 +226,23 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
                 )
             };
 
-
-            let mut risk_review_paragraph = match is_risk_tolerance_change {
-                IsChangeRiskTolerance::NoChangeRiskTolerance(_) => {
+            let client_1_is_risk_tolerance_change = couple_is_risk_tolerance_change.client_1;
+            let client_2_is_risk_tolerance_change = couple_is_risk_tolerance_change.client_2;
+            let mut risk_review_paragraph = match (client_1_is_risk_tolerance_change, client_2_is_risk_tolerance_change) {
+                (IsChangeRiskTolerance::NoChangeRiskTolerance(_), IsChangeRiskTolerance::NoChangeRiskTolerance(_)) => {
                     String::from("We also reviewed your answers to our risk tolerance questionnaire and confirmed these remained the same.")
-                }
-                IsChangeRiskTolerance::ChangeRiskTolerance(_) => {
-                    String::from("We also reviewed your answers to our risk tolerance questionnaire and these had changed since we last reviewed these questions.")
+                },
+                (IsChangeRiskTolerance::ChangeRiskTolerance(_), IsChangeRiskTolerance::NoChangeRiskTolerance(_)) => {
+                    format!("We also reviewed your answers to our risk tolerance questionnaire and {}, you answers had changed, but {}, yours remained the same.", client_1_first_name, client_2_first_name)
+                },
+                (IsChangeRiskTolerance::NoChangeRiskTolerance(_), IsChangeRiskTolerance::ChangeRiskTolerance(_)) => {
+                    format!("We also reviewed your answers to our risk tolerance questionnaire and {}, you answers had changed, but {}, yours remained the same.", client_2_first_name, client_1_first_name)
+                },
+                (IsChangeRiskTolerance::ChangeRiskTolerance(_), IsChangeRiskTolerance::ChangeRiskTolerance(_)) => {
+                    String::from("We also reviewed your answers to our risk tolerance questionnaire and both your answers had changed.")
                 }
             };
+            
 
             risk_review_paragraph.push_str(" As a result, I have reviewed your investment risk tolerance, need, capacity in addition to your financial investment and product knowledge and experience to confirm the outcome as follows for your objectives:");
 
@@ -268,13 +278,11 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
                 )
             };
 
-            let if_circumstances_have_changed_paragraph = String::from("If your circumstances have changed in any way since we last spoke,
-or you feel that you would benefit from further discussion, please contact me using the details at the end of this report.");
+            let if_circumstances_have_changed_paragraph = String::from("If your circumstances have changed in any way since we last spoke, or you feel that you would benefit from further discussion, please contact me using the details at the end of this report.");
 
             let previous_review_paragraph = format!(
-                "As part of our ongoing service, we review your overall circumstances and financial arrangements to ensure that your remain in track to achieve the objectives identified.
- My previous review was completed in the {}",
-                last_annual_review_report.formatted_day_month_year()
+                "As part of our ongoing service, we review your overall circumstances and financial arrangements to ensure that you remain on track to achieve the objectives identified. My previous review was completed on the {}",
+                last_annual_review_report
             );
 
 

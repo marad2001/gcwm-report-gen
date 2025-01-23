@@ -28,6 +28,13 @@ pub struct ChangeInCircumstancesDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct CoupleIsChangeRiskToleranceDto {
+    pub client_1: IsChangeRiskToleranceDto,
+    pub client_2: IsChangeRiskToleranceDto
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum IsChangeRiskToleranceDto {
     NoChangeRiskTolerance(RiskProfileDto),
