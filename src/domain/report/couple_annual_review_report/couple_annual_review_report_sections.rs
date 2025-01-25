@@ -7,6 +7,7 @@ use crate::domain::report::contents_section::ContentsSection;
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_background_section::CoupleAnnualReviewReportBackgroundSection;
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_cover_section::CoupleAnnualReviewReportCoverSection;
 use crate::domain::report::contents_section::AnnualReviewReportContentsSection;
+use crate::domain::report::ReportError;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject;
 use crate::domain::report::current_circumstances_section::CurrentCircumstancesSection;
 
@@ -32,7 +33,7 @@ impl CoupleAnnualReviewReportSections {
         validated_adviser_first_name: &NameString,
         validated_adviser_last_name: &NameString,
         unvalidated_sections: CoupleAnnualReviewReportSectionsDataTransferObject
-    ) -> Result<Self, String> {
+    ) -> Result<Self, ReportError> {
 
         let couple_annual_review_report_cover_section = CoverSection::CoupleAnnualReviewReportCoverSection(
             CoupleAnnualReviewReportCoverSection::new(
@@ -42,7 +43,7 @@ impl CoupleAnnualReviewReportSections {
                 validated_individual_two_last_name,
                 validated_adviser_first_name,
                 validated_adviser_last_name
-            )?
+            ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
         let current_circumstances_section = CurrentCircumstancesSection::CoupleAnnualReviewReportCurrentCircumstancesSection(
@@ -54,7 +55,7 @@ impl CoupleAnnualReviewReportSections {
                 unvalidated_sections.current_circumstances.is_change_in_circumstances,
                 unvalidated_sections.current_circumstances.couple_objectives,
                 unvalidated_sections.current_circumstances.couple_is_risk_tolerance_change
-            )?
+            ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
         Ok(Self {

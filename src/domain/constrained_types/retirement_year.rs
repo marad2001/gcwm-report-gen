@@ -61,32 +61,3 @@ impl RetirementYear {
     }
 }
 
-fn main() {
-    // Example usage with &str
-    match RetirementYear::try_from("2025") {
-        Ok(year) => println!("Valid retirement year (from &str): {}", year),
-        Err(e) => println!("Error: {}", Into::<String>::into(e)),
-    }
-
-    match RetirementYear::try_from("2010") {
-        Ok(year) => println!("Valid retirement year (from &str): {}", year),
-        Err(e) => println!("Error: {}", Into::<String>::into(e)),
-    }
-
-    match RetirementYear::try_from("invalid") {
-        Ok(year) => println!("Valid retirement year (from &str): {}", year),
-        Err(e) => println!("Error: {}", Into::<String>::into(e)),
-    }
-
-    // Example usage with i32
-    match RetirementYear::try_from(2025) {
-        Ok(year) => println!("Valid retirement year (from i32): {}", year),
-        Err(e) => println!("Error: {}", Into::<String>::into(e)),
-    }
-
-    match RetirementYear::try_from(2010) {
-        Ok(year) => println!("Valid retirement year (from i32): {}", year),
-        Err(e) => println!("Error: {}", Into::<String>::into(e)),
-    }
-}
-

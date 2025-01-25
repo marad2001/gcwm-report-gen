@@ -1,6 +1,9 @@
+use report_type::ReportType;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use thiserror::Error;
 
+use super::DomainError;
 use super::traits::ValidatableReport;
 
 pub mod create_report;
@@ -15,6 +18,20 @@ pub mod individual_annual_review_report;
 pub mod couple_annual_review_report;
 pub mod couple_new_report;
 
+#[derive(Debug, Error, Deserialize, Serialize)]
+pub enum ReportError {
+    #[error("Missing required section: {0}")]
+    MissingSection(String),
+    #[error("Validation error in section '{0}': {1}")]
+    SectionValidationError(String, String),
+    #[error("Validation error in report type '{0}': {1}")]
+    ReportTypeValidationError(String, String),
+    #[error("Domain error: {0}")]
+    DomainError(#[from] DomainError),
+    #[error("Unexpected report error: {0}")]
+    Unexpected(String),
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Report {
@@ -24,7 +41,7 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn new<T: ValidatableReport>(report_data: T) -> Result<Self, String> {
+    pub fn new<T: ValidatableReport>(report_data: T) -> Result<Self, ReportError> {
         
         report_data.validate_data_transfer_object_data()?;
         Ok(Self {

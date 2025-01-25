@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{domain::constrained_types::{adviser::Adviser, client_id::ClientId, name_string::NameString}, driven::repository::{MainContactAddress, QueryExternalRepository}, driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject};
 use crate::domain::constrained_types::client_id::IoId;
+use crate::domain::DomainError;
+
+use super::ReportError;
 
 
 pub mod couple_annual_review_report_sections;
@@ -25,17 +28,17 @@ impl CoupleAnnualReviewReport {
         unvalidated_adviser_first_name: String,
         unvalidated_adviser_last_name: String,
         unvalidated_sections: CoupleAnnualReviewReportSectionsDataTransferObject
-    ) -> Result<Self, String>{
+    ) -> Result<Self, ReportError>{
 
-        let individual_one_first_name = NameString::try_from(unvalidated_individual_one_first_name)?;
-        let individual_one_last_name = NameString::try_from(unvalidated_individual_one_last_name)?;
-        let individual_two_first_name = NameString::try_from(unvalidated_individual_two_first_name)?;
-        let individual_two_last_name = NameString::try_from(unvalidated_individual_two_last_name)?;
+        let individual_one_first_name = NameString::try_from(unvalidated_individual_one_first_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
+        let individual_one_last_name = NameString::try_from(unvalidated_individual_one_last_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
+        let individual_two_first_name = NameString::try_from(unvalidated_individual_two_first_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
+        let individual_two_last_name = NameString::try_from(unvalidated_individual_two_last_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
         
         let adviser = Adviser::new(
             unvalidated_adviser_first_name,
             unvalidated_adviser_last_name
-        )?;
+        ).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
 
         let couple_annual_review_report_sections = CoupleAnnualReviewReportSections::new(
             &individual_one_first_name,

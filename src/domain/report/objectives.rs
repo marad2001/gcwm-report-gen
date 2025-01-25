@@ -20,6 +20,12 @@ pub struct CoupleObjectivesAnnualReview {
     pub shared_objectives: Option<ChangeInObjectives>,
 }
 
+// impl AsRef<CoupleObjectivesAnnualReview> for CoupleObjectivesAnnualReview {
+//     fn as_ref(&self) -> &Self {
+//         self
+//     }
+// }
+
 impl TryFrom<CoupleObjectivesAnnualReviewDto> for CoupleObjectivesAnnualReview {
     type Error = String;
 

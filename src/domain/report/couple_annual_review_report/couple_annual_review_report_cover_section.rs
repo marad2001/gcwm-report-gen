@@ -19,7 +19,7 @@ impl CoupleAnnualReviewReportCoverSection {
         validated_individual_two_last_name: &NameString,
         validated_adviser_first_name: &NameString,
         validated_adviser_last_name: &NameString,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, (String, String)> {
 
         //let logo_location = LogoLocation
         let report_title = "Annual Review Report".to_string();

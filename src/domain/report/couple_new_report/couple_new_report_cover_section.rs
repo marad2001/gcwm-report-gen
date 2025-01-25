@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::constrained_types::name_string::NameString;
+use crate::domain::{constrained_types::name_string::NameString, report::ReportError};
 
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -20,7 +20,7 @@ impl CoupleNewReportCoverSection {
         validated_individual_two_last_name: &NameString,
         validated_adviser_first_name: &NameString,
         validated_adviser_last_name: &NameString,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, (String, String)> {
 
         //let logo_location = LogoLocation
         let report_title = "Suitability Report".to_string();

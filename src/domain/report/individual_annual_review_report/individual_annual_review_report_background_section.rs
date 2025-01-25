@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::domain::constrained_types::meeting_date::MeetingDate;
+use crate::domain::report::ReportError;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::individual_annual_review_data_transfer_object::individual_annual_review_report_background_section::IndividualAnnualReviewBackgroundSectionDataTransferObject;
 
 use crate::domain::report::background_section::{MeetingLocation, AdditionalMeetingAttendee, AdditionalCompanyMeetingAttendee, RelationshipToClient};
@@ -15,7 +16,7 @@ pub struct IndividualAnnualReviewReportBackgroundSection {
 }
 
 impl IndividualAnnualReviewReportBackgroundSection {
-    pub fn new(dto: IndividualAnnualReviewBackgroundSectionDataTransferObject) -> Result<Self, String> {
+    pub fn new(dto: IndividualAnnualReviewBackgroundSectionDataTransferObject) -> Result<Self, ReportError> {
         let background = create_background_text(
             dto,
             "It was lovely to see you",

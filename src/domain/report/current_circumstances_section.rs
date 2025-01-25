@@ -26,11 +26,9 @@ impl TryFrom<IsChangeInCircumstancesDto> for IsChangeInCircumstances {
         
         match is_change_in_circumstances_dto {
             IsChangeInCircumstancesDto::ChangeInCircumstances(change_in_circumstances) => {
-                let mut validated_change_in_circumstances = Vec::new();
-                for change in change_in_circumstances.circumstances {
-                    validated_change_in_circumstances.push(ConstrainedString1000::try_from(change)?)
-                }
-                Ok(IsChangeInCircumstances::ChangeInCircumstances(ChangeInCircumstances(validated_change_in_circumstances)))
+                Ok(IsChangeInCircumstances::ChangeInCircumstances(ChangeInCircumstances(
+                    is_valid_change_in_circumstances(change_in_circumstances.circumstances)?
+                )))
             }
             IsChangeInCircumstancesDto::NoChangeInCircumstances => {
                 Ok(IsChangeInCircumstances::NoChangeInCircumstances)
@@ -43,6 +41,18 @@ impl TryFrom<IsChangeInCircumstancesDto> for IsChangeInCircumstances {
                 Ok(IsChangeInCircumstances::ChangeInCircumstances(ChangeInCircumstances(validated_change_in_circumstances)))
             }
         }
+    }
+}
+
+fn is_valid_change_in_circumstances(circumstances: Vec<String>) -> Result<Vec<ConstrainedString1000>, String> {
+    let mut validated_change_in_circumstances = Vec::new();
+    for change in circumstances {
+        validated_change_in_circumstances.push(ConstrainedString1000::try_from(change)?)
+    }
+    if validated_change_in_circumstances.is_empty() {
+        Err("Change in circumstances list cannot be empty".to_string())
+    } else {
+        Ok(validated_change_in_circumstances)
     }
 }
 

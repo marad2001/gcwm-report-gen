@@ -1,27 +1,43 @@
+use crate::domain::report::ReportError;
 use crate::domain::traits::BackgroundSectionDtoTrait;
-use crate::domain::report::background_section::{MeetingLocation, AdditionalCompanyMeetingAttendee, AdditionalMeetingAttendee};
+use crate::domain::report::background_section::{
+    MeetingLocation, AdditionalCompanyMeetingAttendee, AdditionalMeetingAttendee,
+};
 use crate::domain::constrained_types::meeting_date::MeetingDate;
 use crate::domain::report::background_section::RelationshipToClient;
 
 pub fn create_background_text<T>(
     dto: T,
     base_greeting: &str, // Base greeting for all cases
-) -> Result<String, String>
+) -> Result<String, ReportError>
 where
     T: BackgroundSectionDtoTrait,
 {
-    let meeting_location = MeetingLocation::try_from(dto.get_meeting_location().clone())?;
-    let meeting_date = MeetingDate::try_from(dto.get_meeting_date())?.formatted_day_month();
+    // Handle meeting location
+    let meeting_location = MeetingLocation::try_from(dto.get_meeting_location().clone())
+        .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))?;
 
+    // Handle meeting date
+    let meeting_date = MeetingDate::try_from(dto.get_meeting_date())
+        .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))?
+        .formatted_day_month();
+
+    // Handle additional attendees
     let additional_attendees: Result<Vec<_>, _> = dto
         .get_additional_attendees()
         .iter()
-        .map(|a| AdditionalMeetingAttendee::try_from(a.clone()))
+        .map(|a| {
+            AdditionalMeetingAttendee::try_from(a.clone())
+                .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))
+        })
         .collect();
     let additional_company_attendees: Result<Vec<_>, _> = dto
         .get_additional_company_attendees()
         .iter()
-        .map(|a| AdditionalCompanyMeetingAttendee::try_from(a.clone()))
+        .map(|a| {
+            AdditionalCompanyMeetingAttendee::try_from(a.clone())
+                .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))
+        })
         .collect();
 
     let additional_attendees = additional_attendees?;
@@ -52,7 +68,10 @@ where
             .map(|a| match &a.relationship_to_client {
                 RelationshipToClient::Accountant => format!("{} {}, your Accountant", a.first_name, a.last_name),
                 RelationshipToClient::Solicitor => format!("{} {}, your Solicitor", a.first_name, a.last_name),
-                RelationshipToClient::Other(other) => format!("{} {}, your {}", a.first_name, a.last_name, other.description_of_relationship),
+                RelationshipToClient::Other(other) => format!(
+                    "{} {}, your {}",
+                    a.first_name, a.last_name, other.description_of_relationship
+                ),
             })
             .collect();
         greeting_text.push_str(&format!(" and {}", attendee_details.join(", ")));
@@ -68,5 +87,6 @@ where
 
     Ok(background_text)
 }
+
 
 

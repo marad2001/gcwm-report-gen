@@ -17,7 +17,7 @@ impl IndividualAnnualReviewReportCoverSection {
         validated_individual_one_last_name: &NameString,
         validated_adviser_first_name: &NameString,
         validated_adviser_last_name: &NameString,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, (String, String)> {
 
         //let logo_location = LogoLocation
         let report_title = "Annual Review Report".to_string();
@@ -27,7 +27,5 @@ impl IndividualAnnualReviewReportCoverSection {
             client_names_paragraph: format!("Client: {} {}", validated_individual_one_first_name.value(), validated_individual_one_last_name.value()),
             adviser_name_paragraph: format!("{} {}", validated_adviser_first_name, validated_adviser_last_name)
         })
-
-
     }
 }

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::ReportError;
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ContentsSection {
@@ -53,8 +55,10 @@ fn fetch_contents(content_section_type: ContentsType) -> Result<Vec<String>, Str
 pub struct AnnualReviewReportContentsSection(Vec<String>);
 
 impl AnnualReviewReportContentsSection {
-    pub fn new() -> Result<Self, String> {
-        Ok(Self(fetch_contents(ContentsType::AnnualReviewReportContentsSection)?))
+    pub fn new() -> Result<Self, ReportError> {
+        Ok(Self(fetch_contents(ContentsType::AnnualReviewReportContentsSection)
+            .map_err(|e|ReportError::SectionValidationError("Contents Section".to_string(), e))?
+        ))
     }
 }
 
@@ -62,7 +66,9 @@ impl AnnualReviewReportContentsSection {
 pub struct NewReportContentsSection(Vec<String>);
 
 impl NewReportContentsSection {
-    pub fn new() -> Result<Self, String> {
-        Ok(Self(fetch_contents(ContentsType::NewReportContentsSection)?))
+    pub fn new() -> Result<Self, ReportError> {
+        Ok(Self(fetch_contents(ContentsType::NewReportContentsSection)
+            .map_err(|e|ReportError::SectionValidationError("Contents Section".to_string(), e))?
+        ))
     }
 }

@@ -8,6 +8,7 @@ pub mod adviser_data_transfer_object;
 pub mod current_circumstances_section_dto;
 pub mod objectives_dto;
 pub mod risk_assessment_dto;
+pub mod product;
 
 use couple_annual_review_data_transfer_object::CoupleAnnualReviewReportDataTransferObject;
 use individual_annual_review_data_transfer_object::IndividualAnnualReviewReportDataTransferObject;

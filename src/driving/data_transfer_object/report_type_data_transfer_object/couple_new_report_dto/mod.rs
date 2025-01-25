@@ -4,7 +4,7 @@ pub mod couple_new_report_sections_dto;
 pub mod couple_new_report_background_section_dto;
 pub mod couple_new_report_current_circumstances_section_dto;
 
-use crate::domain::{report::{couple_new_report::CoupleNewReport, report_type::ReportType}, traits::ValidatableReport};
+use crate::domain::{report::{couple_new_report::CoupleNewReport, report_type::ReportType, ReportError}, traits::ValidatableReport};
 
 use super::adviser_data_transfer_object::AdviserDataTransferObject;
 
@@ -21,21 +21,21 @@ pub struct CoupleNewReportDto {
 
 impl ValidatableReport for CoupleNewReportDto {
     
-    fn validate_data_transfer_object_data(&self) -> Result<(), String> {
+    fn validate_data_transfer_object_data(&self) -> Result<(), ReportError> {
 
         if self.individual_one_first_name.is_empty() || self.individual_one_last_name.is_empty() || self.individual_one_first_name.is_empty() || self.individual_one_last_name.is_empty() {
-            return Err("Individual names cannot be empty".to_string());
+            return Err(ReportError::ReportTypeValidationError("Couple New Report".to_string(), "Individual names cannot be empty".to_string()));
         }
 
         if self.adviser.adviser_first_name.is_empty() || self.adviser.adviser_last_name.is_empty() {
-            return Err("Adviser first name cannot be empty".to_string());
+            return Err(ReportError::ReportTypeValidationError("Couple New Report".to_string(), "Adviser first name cannot be empty".to_string()));
         }
 
         Ok(())
 
     }
 
-    fn into_report_type(self) -> Result<ReportType, String> {
+    fn into_report_type(self) -> Result<ReportType, ReportError> {
 
         let report = CoupleNewReport::new(
             self.individual_one_first_name,

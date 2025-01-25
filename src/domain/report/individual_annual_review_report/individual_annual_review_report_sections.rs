@@ -8,6 +8,7 @@ use crate::domain::report::individual_annual_review_report::individual_annual_re
 use crate::domain::report::contents_section::AnnualReviewReportContentsSection;
 use crate::domain::report::individual_annual_review_report::individual_annual_review_report_background_section::IndividualAnnualReviewReportBackgroundSection;
 
+use crate::domain::report::ReportError;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::individual_annual_review_data_transfer_object::individual_annual_review_report_sections_data_transfer_object::IndividualAnnualReviewReportSectionsDataTransferObject;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -26,7 +27,7 @@ impl IndividualAnnualReviewReportSections {
         validated_adviser_first_name: &NameString,
         validated_adviser_last_name: &NameString,
         unvalidated_sections: IndividualAnnualReviewReportSectionsDataTransferObject
-    ) -> Result<Self, String> {
+    ) -> Result<Self, ReportError> {
 
         let individual_annual_review_report_cover_section = CoverSection::IndividualAnnualReviewReportCoverSection(
             IndividualAnnualReviewReportCoverSection::new(
@@ -34,7 +35,7 @@ impl IndividualAnnualReviewReportSections {
                 validated_individual_one_last_name,
                 validated_adviser_first_name,
                 validated_adviser_last_name
-            )?
+            ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
         Ok(Self {

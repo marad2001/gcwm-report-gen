@@ -58,42 +58,4 @@ impl RetirementAge {
     }
 }
 
-fn main() {
-    // Example usage with &str
-    match RetirementAge::try_from("45") {
-        Ok(age) => println!("Valid retirement age from &str: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    match RetirementAge::try_from("20") {
-        Ok(age) => println!("Valid retirement age from &str: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    match RetirementAge::try_from("invalid") {
-        Ok(age) => println!("Valid retirement age from &str: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    // Example usage with i32
-    match RetirementAge::try_from(45) {
-        Ok(age) => println!("Valid retirement age from i32: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    match RetirementAge::try_from(20) {
-        Ok(age) => println!("Valid retirement age from i32: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    match RetirementAge::try_from(85) {
-        Ok(age) => println!("Valid retirement age from i32: {}", age.value()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    // Demonstrate From<String> for InvalidAgeError
-    let error: InvalidAgeError = String::from("Custom error message").into();
-    println!("Custom error: {}", error);
-}
-
 
