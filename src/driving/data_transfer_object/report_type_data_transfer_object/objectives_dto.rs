@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::risk_assessment_dto::RiskProfileDto;
 
@@ -32,6 +33,7 @@ pub enum ObjectiveTypeDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IncomeObjectiveYearDto {
+    pub id: Uuid,
     pub annual_income: f32,
     pub frequency: String,
     pub from_year: i32,
@@ -41,6 +43,7 @@ pub struct IncomeObjectiveYearDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InRetirementIncomeObjectiveDto {
+    pub id: Uuid,
     pub annual_income: f32,
     pub frequency: String,
     pub linked_risk_profile: RiskProfileDto
@@ -49,6 +52,7 @@ pub struct InRetirementIncomeObjectiveDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherObjectiveDto {
+    pub id: Uuid,
     pub objective: String,
     pub objective_summary: String,
     pub linked_risk_profile: RiskProfileDto
@@ -57,11 +61,13 @@ pub struct OtherObjectiveDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IhtObjectiveDto {
+    pub id: Uuid,
     pub linked_risk_profile: RiskProfileDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CapitalProtectionObjectiveDto {
+    pub id: Uuid,
     pub linked_risk_profile: RiskProfileDto
 }

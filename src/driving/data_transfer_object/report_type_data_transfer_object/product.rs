@@ -1,74 +1,92 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::risk_assessment_dto::RiskProfileDto;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ProductsDto(Vec<ExistingNewJointSingleProductDto>);
+
+impl ProductsDto {
+    pub fn value(&self) -> &Vec<ExistingNewJointSingleProductDto>{
+        &self.0
+    }
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum ExistingNewJointSingleProductDto {
     ExistingJointlyOwnedProduct(ExistingJointlyOwnedProductDto),
-    ExistingSingleOwnedPRoduct(ExistingSingleOwnedProductDto),
+    ExistingSingleOwnedProduct(ExistingSingleOwnedProductDto),
     NewSingleOwnedProduct(NewSingleOwnedProductDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExistingJointlyOwnedProductDto {
-    ownership: OwnershipDto,
-    provider: ProviderDto,
-    platform_account_number: PlatformAccountNumberTypeDto,
-    account_or_reference_number: AccountOrReferenceNumberTypeDto,
-    optional_description: String,
-    tax_wrapper_type: TaxWrapperTypeDto,
-    current_investment_strategy: CurrentInvestmentStrategyDto,
-    current_value: ValuationDto,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
-    charges: ProductChargesDto,
-    current_tax_position: CurrentProductTaxPositionDto,
-    recommendations: ExistingProductRecommendationsDto
+    pub ownership: OwnershipDto,
+    pub provider: ProviderDto,
+    pub platform_account_number: PlatformAccountNumberTypeDto,
+    pub account_or_reference_number: AccountOrReferenceNumberTypeDto,
+    pub optional_description: Option<String>,
+    pub tax_wrapper_type: TaxWrapperTypeDto,
+    pub current_investment_strategy: CurrentInvestmentStrategyDto,
+    pub current_value: ValuationDto,
+    pub linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
+    pub charges: ProductChargesDto,
+    pub current_tax_position: Option<CurrentProductTaxPositionDto>,
+    pub recommendations: ExistingProductRecommendationsDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExistingSingleOwnedProductDto {
-    provider: ProviderDto,
-    platform_account_number: PlatformAccountNumberTypeDto,
-    account_or_reference_number: AccountOrReferenceNumberTypeDto,
-    optional_description: String,
-    tax_wrapper_type: TaxWrapperTypeDto,
-    current_investment_strategy: CurrentInvestmentStrategyDto,
-    current_value: ValuationDto,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
-    charges: ProductChargesDto,
-    current_tax_position: CurrentProductTaxPositionDto,
-    recommendations: ExistingProductRecommendationsDto
+    pub provider: ProviderDto,
+    pub platform_account_number: PlatformAccountNumberTypeDto,
+    pub account_or_reference_number: AccountOrReferenceNumberTypeDto,
+    pub optional_description: Option<String>,
+    pub tax_wrapper_type: TaxWrapperTypeDto,
+    pub current_investment_strategy: CurrentInvestmentStrategyDto,
+    pub current_value: ValuationDto,
+    pub linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
+    pub charges: ProductChargesDto,
+    pub current_tax_position: Option<CurrentProductTaxPositionDto>,
+    pub recommendations: ExistingProductRecommendationsDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSingleOwnedProductDto {
-    provider: ProviderDto,
-    platform_account_number: PlatformAccountNumberTypeDto,
-    account_or_reference_number: AccountOrReferenceNumberTypeDto,
-    optional_description: String,
-    tax_wrapper_type: TaxWrapperTypeDto,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
-    charges: ProductChargesDto,
-    recommendations: ExistingProductRecommendationsDto
+    pub provider: ProviderDto,
+    pub platform_account_number: PlatformAccountNumberTypeDto,
+    pub account_or_reference_number: AccountOrReferenceNumberTypeDto,
+    pub optional_description: String,
+    pub tax_wrapper_type: TaxWrapperTypeDto,
+    pub linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberTypeDto,
+    pub charges: ProductChargesDto,
+    pub recommendations: NewProductRecommendationsDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnershipDto {
-    client_first_name: String,
-    client_last_name: String,
-    percentage_owned: f32
+    pub client_first_name: String,
+    pub client_last_name: String,
+    pub percentage_owned: f32
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderDto(ProvidersDto);
+
+impl ProviderDto {
+    /// Returns the value of the ProviderDto.
+    pub fn value(&self) -> &ProvidersDto {
+        &self.0
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -96,6 +114,7 @@ pub enum TaxWrapperTypeDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[serde(tag = "type", content = "content")]
 pub enum CurrentInvestmentStrategyDto {
     GCWMInvestmentStrategy(GCWMInvestmentStrategiesDto),
     OtherInvestmentStrategy(OtherInvestmentStrategyDto)
@@ -103,6 +122,7 @@ pub enum CurrentInvestmentStrategyDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[serde(tag = "type", content = "content")]
 pub enum GCWMInvestmentStrategiesDto {
     PrimeModerate(CurrentInvestmentStrategyMonthYearDto)
 }
@@ -117,301 +137,314 @@ pub enum CurrentInvestmentStrategyMonthYearDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherInvestmentStrategyDto {
-    description: f32,
-    fund_allocation: Option<FundHoldingDto>
+    pub description: String,
+    pub fund_allocation: Option<FundHoldingDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FundHoldingDto {
-    fund_name: String,
-    isin: Option<String>,
-    sedol: Option<String>,
-    value: Option<f32>,
-    percentage_of_portfolio: Option<f32>
+    pub fund_name: String,
+    pub isin: Option<String>,
+    pub sedol: Option<String>,
+    pub value: Option<f32>,
+    pub percentage_of_portfolio: Option<f32>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ValuationDto {
-    value: f32,
-    date_of_valuation: String
+    pub value: f32,
+    pub date_of_valuation: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductChargesDto {
-    ongoing_advice_charge: f32,
-    platform_charge: f32,
-    ongoing_fund_charge: f32,
-    other_charges: OtherChargeDto
+    pub ongoing_advice_charge: f32,
+    pub platform_charge: f32,
+    pub ongoing_fund_charge: f32,
+    pub other_charges: OtherChargeDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentProductTaxPositionDto {
-    product_tax_position: ProductTaxPositionDto
+    pub product_tax_position: ProductTaxPositionDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExistingProductRecommendationsDto {
-    recommended_product_charges: ProductChargesDto,
-    product_retention: ProductRetentionDto,
-    recommended_investment_strategy: RecommendedInvestmentAndRiskStrategyDto,
-    linked_objectives: Vec<Uuid>,
-    recommendation_actions: Vec<RecommendedActionDto>
+    pub recommended_product_charges: ProductChargesDto,
+    pub product_retention: ProductRetentionDto,
+    pub recommended_investment_strategy: InvestableInvestmentStrategyDto,
+    pub linked_objectives: Vec<Uuid>,
+    pub recommendation_actions: Vec<RecommendedActionDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NewProductRecommendationsDto {
-    recommended_product_charges: ProductChargesDto,
-    recommended_investment_strategy: RecommendedInvestmentAndRiskStrategyDto,
-    linked_objectives: Vec<Uuid>,
-    recommendation_actions: Vec<RecommendedActionDto>
+    pub recommended_product_charges: ProductChargesDto,
+    pub recommended_investment_strategy: InvestableInvestmentStrategyDto,
+    pub linked_objectives: Vec<Uuid>,
+    pub recommendation_actions: Vec<RecommendedActionDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherChargeDto {
-    ongoing_charges: Vec<OngoingChargeDto>,
-    incidental_charges: Vec<IncidentalChargeDto>
+    pub ongoing_charges: Option<Vec<OngoingChargeDto>>,
+    pub incidental_charges: Option<Vec<IncidentalChargeDto>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendedInvestmentAndRiskStrategyDto {
-    recommended_investment_strategy: InvestableInvestmentStrategyDto,
-    risk_level: RiskProfileDto
+    pub recommended_investment_strategy: InvestableInvestmentStrategyDto,
+    pub risk_level: RiskProfileDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum CapitalGainsPositionDto {
-    CapitalGainsTaxAvoidLiability,
-    CapitalGainsTaxNoLiability,
-    CapitalGainsTaxIncurLiability
+    CapitalGainsTaxAvoidLiability(CapitalGainsTaxAvoidLiabilityDto),
+    CapitalGainsTaxNoLiability(CapitalGainsTaxNoLiabilityDto),
+    CapitalGainsTaxIncurLiability(CapitalGainsTaxIncurLiabilityDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum ChargeableGainsPositionDto {
-    ChargeableGainsTaxAvoidLiability(CapitalGainsTaxAvoidLiabilityDto),
-    ChargeableGainsTaxNoLiability(CapitalGainsTaxNoLiabilityDto),
-    ChargeableGainsTaxIncurLiability(CapitalGainsTaxIncurLiabilityDto)
+    ChargeableGainsTaxAvoidLiability(ChargeableGainsTaxAvoidLiabilityDto),
+    ChargeableGainsTaxNoLiability(ChargeableGainsTaxNoLiabilityDto),
+    ChargeableGainsTaxIncurLiability(ChargeableGainsTaxIncurLiabilityDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum ProductRetentionDto {
-    Retain,
-    Replace, 
-    FullyEncash,
+    Retain(RetainDto),
+    Replace(ReplaceDto), 
+    FullyEncash(FullyEncashDto),
+    PartialTransfer(PartialTransferDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum RecommendedActionDto {
-    SingleWithdrawal,
-    SingleContribution,
-    RegularContribution,
-    RegularWithdrawal,
-    Transfer,
-    StopWithdrawal
+    SingleWithdrawal(SingleWithdrawalDto),
+    SingleContribution(SingleContributionDto),
+    RegularContribution(RegularContributionDto),
+    RegularWithdrawal(RegularWithdrawalDto),
+    Transfer(TransferDto),
+    StopWithdrawal(StopWithdrawalDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum ProductTaxPositionDto {
-    CapitalGainsTaxPositionDto,
-    ChargeableGainsPositionDto
+    CapitalGainsTaxPositionDto(CapitalGainsPositionDto),
+    ChargeableGainsPositionDto(ChargeableGainsPositionDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OngoingChargeDto {
-    charge_description: String,
-    charge_value: f32,
-    frequency: String
+    pub charge_description: String,
+    pub charge_value: f32,
+    pub frequency: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IncidentalChargeDto {
-    charge_description: String,
-    charge_value: f32,
-    frequency: String,
-    trigger_event: String
+    pub charge_description: String,
+    pub charge_value: f32,
+    pub frequency: String,
+    pub trigger_event: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CapitalGainsTaxAvoidLiabilityDto {
-    unrealised_gains: f32,
-    capital_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub capital_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CapitalGainsTaxNoLiabilityDto {
-    unrealised_gains: f32,
-    capital_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub capital_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CapitalGainsTaxIncurLiabilityDto {
-    unrealised_gains: f32,
-    capital_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub capital_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChargeableGainsTaxAvoidLiabilityDto {
-    unrealised_gains: f32,
-    chargeable_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub chargeable_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChargeableGainsTaxNoLiabilityDto {
-    unrealised_gains: f32,
-    chargeable_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub chargeable_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChargeableGainsTaxIncurLiabilityDto {
-    unrealised_gains: f32,
-    chargeable_gains_tax_discussion: String
+    pub unrealised_gains: f32,
+    pub chargeable_gains_tax_discussion: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RetainDto {
-    rationale: String,
+    pub rationale: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceDto {
-    rationale: String,
-    replacement_product_information: ReplacementProductInfromation
+    pub rationale: String,
+    pub replacement_product_information: ReplacementProductInformationDto
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PartialTransferDto {
+    pub rationale: String,
+    pub value_to_transfer: f32,
+    pub replacement_product_information: ReplacementProductInformationDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FullyEncashDto {
-    rationale: String,
+    pub rationale: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleWithdrawalDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    date_of_action: Option<String>,
-    tax_year_of_action: Option<String>
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub date_of_action: Option<String>,
+    pub tax_year_of_action: Option<String>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleContributionDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    date_of_action: Option<String>,
-    tax_year_of_action: Option<String>
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub date_of_action: Option<String>,
+    pub tax_year_of_action: Option<String>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegularContributionDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    start_date_of_action: String,
-    tax_year_of_action: Option<String>,
-    end_date_of_action: Option<String>,
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub frequency: String,
+    pub start_date_of_action: String,
+    pub tax_year_of_action: Option<String>,
+    pub end_date_of_action: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegularWithdrawalDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    start_date_of_action: String,
-    tax_year_of_action: Option<String>,
-    end_date_of_action: Option<String>,
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub frequency: String,
+    pub start_date_of_action: String,
+    pub tax_year_of_action: Option<String>,
+    pub end_date_of_action: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    date_of_action: Option<String>,
-    tax_year_of_action: Option<String>,
-    transfer_to_details: Vec<TransferDetailDto>
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub date_of_action: Option<String>,
+    pub tax_year_of_action: Option<String>,
+    pub transfer_to_details: Vec<TransferDetailDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StopWithdrawalDto {
-    value: f32,
-    executive_summary_description: String,
-    rationale: String,
-    start_date_of_action: Option<String>,
-    tax_year_of_action: Option<String>,
-    end_date_of_action: Option<String>,
+    pub value: f32,
+    pub executive_summary_description: String,
+    pub rationale: String,
+    pub start_date_of_action: Option<String>,
+    pub tax_year_of_action: Option<String>,
+    pub end_date_of_action: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InvestableInvestmentStrategyDto {
-    risk_level: RiskProfileDto,
-    fund_allocations: BespokeOrFirmInvestmentStrategyDto
+    pub risk_level: RiskProfileDto,
+    pub fund_allocations: BespokeOrFirmInvestmentStrategyDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferDetailDto {
-    value: f32,
-    transfer_to: String
+    pub value: f32,
+    pub transfer_to: AccountOrReferenceNumberTypeDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum ReplacementProductInfromation {
-    PensionReplacementProductInformation,
-    InvestmentReplacementProductInformation
+pub enum ReplacementProductInformationDto {
+    PensionReplacementProductInformation(PensionReplacementProductInformationDto),
+    InvestmentReplacementProductInformation(InvestmentReplacementProductInformationDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[serde(tag = "type", content = "content")]
 pub enum BespokeOrFirmInvestmentStrategyDto {
-    BespokeInvestmentStrategyDto(BespokeInvestmentStrategyDto),
-    FirmInvestmentStrategyDto(PresentFirmInvestmentStrategyDto)
+    BespokeInvestmentStrategy(BespokeInvestmentStrategyDto),
+    FirmInvestmentStrategy(PresentFirmInvestmentStrategyDto)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BespokeInvestmentStrategyDto {
-    description: f32,
-    fund_allocation: Option<FundHoldingDto>
+    pub description: String,
+    pub fund_allocation: Option<FundHoldingDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[serde(tag = "type", content = "content")]
 pub enum PresentFirmInvestmentStrategyDto {
     PrimeModerate(Vec<FundHoldingDto>)
 }
@@ -419,52 +452,52 @@ pub enum PresentFirmInvestmentStrategyDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PensionReplacementProductInformationDto {
-    start_date: String,
-    total_contributions: f32,
-    current_transfer_value: f32,
-    no_of_funds_available: f32,
-    max_number_of_funds_invested_at_one_time: Option<f32>,
-    retirement_date_age: f32,
-    is_waiver_of_premium_insurance_available: bool,
-    death_benefits_description: String,
-    is_life_cover_available: Option<f32>,
-    loyalty_bonus: Option<f32>,
-    fund_bonus_enhanced_allocation: Option<f32>,
-    tax_free_cash_entitlement: f32,
-    is_flexi_access_available: bool,
-    is_full_ufpls_available: bool,
-    is_partial_ufpls_available: bool,
-    is_transfers_contributions_allowed_in: bool,
-    is_block_or_bulk_transfer_received: bool,
-    is_enhanced_protection_available: bool,
-    is_earmarking_order: bool,
-    is_charge_guarantee_and_guarantee_amount: bool,
-    is_existing_pension_sharing_order: bool,
-    is_guaranteed_minimum_fund: bool,
-    is_guaranteed_minimum_annuity: bool,
-    is_guaranteed_minmum_pension_or_reference_scheme_test: bool,
-    is_guaranteed_annuity_rates: bool,
-    other_features: Vec<(String, String)>
+    pub start_date: String,
+    pub total_contributions: f32,
+    pub current_transfer_value: f32,
+    pub no_of_funds_available: i32,
+    pub max_number_of_funds_invested_at_one_time: Option<i32>,
+    pub retirement_date_age: i32,
+    pub is_waiver_of_premium_insurance_available: bool,
+    pub death_benefits_description: String,
+    pub is_life_cover_available: Option<f32>,
+    pub loyalty_bonus: Option<f32>,
+    pub fund_bonus_enhanced_allocation: Option<f32>,
+    pub tax_free_cash_entitlement: f32,
+    pub is_flexi_access_available: bool,
+    pub is_full_ufpls_available: bool,
+    pub is_partial_ufpls_available: bool,
+    pub is_transfers_contributions_allowed_in: bool,
+    pub is_block_or_bulk_transfer_received: bool,
+    pub is_enhanced_protection_available: bool,
+    pub is_earmarking_order: bool,
+    pub is_charge_guarantee_and_guarantee_amount: bool,
+    pub is_existing_pension_sharing_order: bool,
+    pub is_guaranteed_minimum_fund: bool,
+    pub is_guaranteed_minimum_annuity: bool,
+    pub is_guaranteed_minimum_pension_or_reference_scheme_test: bool,
+    pub is_guaranteed_annuity_rates: bool,
+    pub other_features: Vec<(String, String)>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InvestmentReplacementProductInformationDto {
-    start_date: String,
-    total_contributions: f32,
-    current_transfer_value: f32,
-    no_of_funds_available: f32,
-    max_number_of_funds_invested_at_one_time: Option<f32>,
-    loyalty_bonus: Option<f32>,
-    fund_bonus_enhanced_allocation: Option<f32>,
-    is_charge_guarantee_and_guarantee_amount: bool,
-    is_guaranteed_return_applicable: bool,
-    other_features: Vec<(String, String)>
+    pub start_date: String,
+    pub total_contributions: f32,
+    pub current_transfer_value: f32,
+    pub no_of_funds_available: i32,
+    pub max_number_of_funds_invested_at_one_time: Option<i32>,
+    pub loyalty_bonus: Option<f32>,
+    pub fund_bonus_enhanced_allocation: Option<f32>,
+    pub is_charge_guarantee_and_guarantee_amount: bool,
+    pub is_guaranteed_return_applicable: bool,
+    pub other_features: Vec<(String, String)>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum PlatformAccountNumberTypeDto {
     Abrdn(String),
     Transact(String),
@@ -473,18 +506,18 @@ pub enum PlatformAccountNumberTypeDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum AccountOrReferenceNumberTypeDto {
     Abrdn(String),
+    AbrdnSipp(String),
     Transact(String),
     Other(String)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum PlatformOrAccountReferenceNumberTypeDto {
-    PlatformAccountNumberTypeDto(PlatformAccountNumberTypeDto),
-    AccountOrReferenceNumberTypeDto(AccountOrReferenceNumberTypeDto)
+    PlatformAccountNumberType(PlatformAccountNumberTypeDto),
+    AccountOrReferenceNumberType(AccountOrReferenceNumberTypeDto)
 }
-

@@ -23,10 +23,7 @@ fn fetch_contents(content_section_type: ContentsType) -> Result<Vec<String>, Str
             Ok(vec![
                 "Executive summary".to_string(),
                 "Background".to_string(),
-                "Current Circumstances".to_string(),
-                "Objectives".to_string(),
-                "Existing Products".to_string(),
-                "Investment risk assessment".to_string(),
+                "Current circumstances and objectives".to_string(),
                 "Recommendations".to_string(),
                 "Investment strategy".to_string(),
                 "Risks and disadvantages".to_string(),

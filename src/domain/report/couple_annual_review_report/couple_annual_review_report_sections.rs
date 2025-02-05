@@ -10,7 +10,9 @@ use crate::domain::report::contents_section::AnnualReviewReportContentsSection;
 use crate::domain::report::ReportError;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject;
 use crate::domain::report::current_circumstances_section::CurrentCircumstancesSection;
+use crate::domain::report::recommendations_section::RecommendationsSection;
 
+use super::couple_annual_review_recommendations_section::CoupleAnnualReviewReportRecommendationsSection;
 use super::couple_annual_review_report_current_circumstances_section::CoupleAnnualReviewReportCurrentCircumstancesSection;
 
 
@@ -21,7 +23,8 @@ pub struct CoupleAnnualReviewReportSections {
     contents: ContentsSection,
     // executive_summary: ExecutiveSummarySection
     background: BackgroundSection,
-    current_circumstances: CurrentCircumstancesSection
+    current_circumstances: CurrentCircumstancesSection,
+    //recommendations: RecommendationsSection
 }
 
 impl CoupleAnnualReviewReportSections {
@@ -58,11 +61,18 @@ impl CoupleAnnualReviewReportSections {
             ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
+        // let recommendations_section = RecommendationsSection::CoupleAnnualReviewReportRecommendationsSection(
+        //     CoupleAnnualReviewReportRecommendationsSection::new(
+                
+        //     ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))
+        // );
+
         Ok(Self {
             cover: couple_annual_review_report_cover_section,
             contents: ContentsSection::AnnualReviewReportContentsSection(AnnualReviewReportContentsSection::new()?),
             background: BackgroundSection::CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?),
-            current_circumstances: current_circumstances_section
+            current_circumstances: current_circumstances_section,
+            //recommendations: recommendations_section
         })
 
     }

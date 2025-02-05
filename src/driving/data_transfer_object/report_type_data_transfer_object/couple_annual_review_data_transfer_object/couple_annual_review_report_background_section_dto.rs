@@ -5,8 +5,6 @@ use crate::domain::traits::BackgroundSectionDtoTrait;
 
 use crate::driving::data_transfer_object::report_type_data_transfer_object::background_section_data_transfer_objects::{AdditionalCompanyMeetingAttendeeDataTransferObject, AdditionalMeetingAttendeeDataTransferObject, MeetingLocationDataTransferObject};
 
-
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CoupleAnnualReviewBackgroundSectionDataTransferObject{

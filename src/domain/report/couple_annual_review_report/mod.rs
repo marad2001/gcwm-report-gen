@@ -2,16 +2,15 @@ use couple_annual_review_report_sections::CoupleAnnualReviewReportSections;
 use serde::{Deserialize, Serialize};
 
 use crate::{domain::constrained_types::{adviser::Adviser, client_id::ClientId, name_string::NameString}, driven::repository::{MainContactAddress, QueryExternalRepository}, driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject};
-use crate::domain::constrained_types::client_id::IoId;
 use crate::domain::DomainError;
 
 use super::ReportError;
-
 
 pub mod couple_annual_review_report_sections;
 pub mod couple_annual_review_report_cover_section;
 pub mod couple_annual_review_report_background_section;
 pub mod couple_annual_review_report_current_circumstances_section;
+pub mod couple_annual_review_recommendations_section;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

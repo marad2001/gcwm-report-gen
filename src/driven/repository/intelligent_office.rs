@@ -7,8 +7,6 @@ use std::env;
 
 use crate::domain::constrained_types::client_id::{ClientId, IoId};
 
-use super::{MainContactAddress, QueryExternalRepository};
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IoAddressApiResponse {

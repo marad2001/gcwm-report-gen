@@ -24,6 +24,8 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
     let path_parameters = event.path_parameters();
     let payload = event.payload::<driving::data_transfer_object::DataTransferObject>()?;
 
+    println!("Payload: {:?}", payload);
+
     match method {
         &Method::POST => {
             if !path_parameters.is_empty() {

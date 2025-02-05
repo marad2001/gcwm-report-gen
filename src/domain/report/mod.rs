@@ -17,6 +17,9 @@ pub mod risk_assessment;
 pub mod individual_annual_review_report;
 pub mod couple_annual_review_report;
 pub mod couple_new_report;
+pub mod recommendations_section;
+pub mod product;
+pub mod advice_areas;
 
 #[derive(Debug, Error, Deserialize, Serialize)]
 pub enum ReportError {
