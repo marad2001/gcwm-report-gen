@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::convert::TryFrom;
+use std::fmt;
 
+use crate::domain::constrained_types::abrdn_account_number::AbrdnAccountNumber;
 use crate::domain::constrained_types::abrdn_full_account_number::AbrdnFullAccountNumber;
 use crate::domain::constrained_types::abrdn_sipp_number::AbrdnSippNumber;
 use crate::domain::constrained_types::transact_platform_number::TransactPlatformNumber;
@@ -27,19 +29,147 @@ use super::risk_assessment::RiskProfile;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::product::*;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Products {
-    products: Vec<ExistingNewJointSingleProduct>,
+pub struct Products(Vec<ExistingNewJointSingleProduct>);
+
+impl Products {
+    pub fn value(&self) -> &Vec<ExistingNewJointSingleProduct> {
+        &self.0
+    }
 }
 
 impl TryFrom<ProductsDto> for Products {
     type Error = String;
 
     fn try_from(dto: ProductsDto) -> Result<Self, Self::Error> {
-        Ok(Products {
-            products: dto.value().into_iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?,
-        })
+        Ok(Products(dto.value().into_iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?))
     }
 }
+
+impl Products {
+
+    pub fn existing_products(&self) -> Vec<ExistingProduct> {
+        self.0
+            .iter()
+            .filter_map(|product| match product {
+                ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(p) => {
+                    Some(ExistingProduct::JointlyOwned(p.clone()))
+                }
+                ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(p) => {
+                    Some(ExistingProduct::SingleOwned(p.clone()))
+                }
+                ExistingNewJointSingleProduct::NewSingleOwnedProduct(_) => None, // Ignore new products
+            })
+            .collect()
+    }
+    
+    /// Returns a vector of all new single-owned products.
+    pub fn new_products(&self) -> Vec<NewProduct> {
+        self.0
+            .iter()
+            .filter_map(|product| match product {
+                ExistingNewJointSingleProduct::NewSingleOwnedProduct(p) => {
+                    Some(NewProduct::SingleOwned(p.clone()))
+                }
+                _ => None, // Ignore existing products
+            })
+            .collect()
+    }
+    
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum ExistingProduct {
+    JointlyOwned(ExistingJointlyOwnedProduct),
+    SingleOwned(ExistingSingleOwnedProduct),
+}
+
+impl ExistingProduct {
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match self {
+            ExistingProduct::JointlyOwned(product) => product.provider.0.to_string(),
+            ExistingProduct::SingleOwned(product) => product.provider.0.to_string(),
+        }
+    }
+
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        match self {
+            ExistingProduct::JointlyOwned(product) => product.tax_wrapper_type.to_string(),
+            ExistingProduct::SingleOwned(product) => product.tax_wrapper_type.to_string(),
+        }
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_as_string(&self) -> String {
+        match self {
+            ExistingProduct::JointlyOwned(product) => product.account_or_reference_number.to_string(),
+            ExistingProduct::SingleOwned(product) => product.account_or_reference_number.to_string(),
+        }
+    }
+
+    /// Returns a reference to the provider.
+    pub fn provider(&self) -> &Provider {
+        match self {
+            ExistingProduct::JointlyOwned(product) => &product.provider,
+            ExistingProduct::SingleOwned(product) => &product.provider,
+        }
+    }
+
+    /// Returns a reference to the retention recommendation.
+    pub fn product_retention(&self) -> &ProductRetention {
+        match self {
+            ExistingProduct::JointlyOwned(product) => &product.recommendations.product_retention,
+            ExistingProduct::SingleOwned(product) => &product.recommendations.product_retention,
+        }
+    }
+    
+    
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum NewProduct {
+    SingleOwned(NewSingleOwnedProduct),
+}
+
+impl NewProduct {
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match self {
+            NewProduct::SingleOwned(product) => product.provider.0.to_string(),
+        }
+    }
+
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        match self {
+            NewProduct::SingleOwned(product) => product.tax_wrapper_type.to_string(),
+        }
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_as_string(&self) -> String {
+        match self {
+            NewProduct::SingleOwned(product) => product.account_or_reference_number.to_string(),
+        }
+    }
+
+   
+    /// Returns a reference to the provider.
+    pub fn provider(&self) -> &Provider {
+        match self {
+            NewProduct::SingleOwned(product) => &product.provider,
+        }
+    }
+ 
+    
+}
+
+
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +196,87 @@ impl TryFrom<ExistingNewJointSingleProductDto> for ExistingNewJointSingleProduct
             }
         }
     }
+}
+
+impl ExistingNewJointSingleProduct {
+    
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        match self {
+            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
+                product.tax_wrapper_type.to_string()
+            }
+            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
+                product.tax_wrapper_type.to_string()
+            }
+            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
+                product.tax_wrapper_type.to_string()
+            }
+        }
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_as_string(&self) -> String {
+        match self {
+            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
+                product.account_or_reference_number.to_string()
+            }
+            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
+                product.account_or_reference_number.to_string()
+            }
+            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
+                product.account_or_reference_number.to_string()
+            }
+        }
+    }
+
+    /// Returns the platform account number as a string.
+    pub fn platform_account_number_as_string(&self) -> String {
+        match self {
+            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
+                product.platform_account_number.to_string()
+            }
+            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
+                product.platform_account_number.to_string()
+            }
+            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
+                product.platform_account_number.to_string()
+            }
+        }
+    }
+
+    /// Returns the provider.
+    pub fn provider(&self) -> &Provider {
+        match self {
+            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
+                &product.provider
+            }
+            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
+                &product.provider
+            }
+            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
+                &product.provider
+            }
+        }
+    }
+
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match self {
+            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
+                product.provider.0.to_string()  // Access inner Providers enum
+            }
+            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
+                product.provider.0.to_string()
+            }
+            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
+                product.provider.0.to_string()
+            }
+        }
+    }
+
+
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -213,6 +424,12 @@ impl TryFrom<ProviderDto> for Provider {
     }
 }
 
+impl Provider {
+    pub fn value(&self) -> &Providers {
+        &self.0
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
@@ -224,7 +441,18 @@ pub enum Providers {
     Quilter,
 }
 
-
+impl fmt::Display for Providers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let provider_str = match self {
+            Providers::Abrdn => "abrdn",  // lowercase 'a' for abrdn
+            Providers::Transact => "Transact",
+            Providers::Utmost => "Utmost",
+            Providers::ReAssure => "ReAssure",
+            Providers::Quilter => "Quilter",
+        };
+        write!(f, "{}", provider_str)
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -252,6 +480,22 @@ impl TryFrom<TaxWrapperTypeDto> for TaxWrapperType {
             TaxWrapperTypeDto::PersonalPension => Ok(Self::PersonalPension),
             TaxWrapperTypeDto::JuniorIsaStocksAndShares => Ok(Self::JuniorIsaStocksAndShares)
         }
+    }
+}
+
+// Implement Display for TaxWrapperType.
+impl fmt::Display for TaxWrapperType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let type_str = match self {
+            TaxWrapperType::IsaStocksAndShares => "ISA Stocks and Shares",
+            TaxWrapperType::GeneralInvestmentAccount => "General Investment Account",
+            TaxWrapperType::OnshoreInvestmentBond => "Onshore Investment Bond",
+            TaxWrapperType::OffshoreInvestmentBond => "Offshore Investment Bond",
+            TaxWrapperType::SelfInvestedPersonalPension => "Self Invested Personal Pension",
+            TaxWrapperType::PersonalPension => "Personal Pension",
+            TaxWrapperType::JuniorIsaStocksAndShares => "Junior ISA Stocks and Shares",
+        };
+        write!(f, "{}", type_str)
     }
 }
 
@@ -1044,7 +1288,9 @@ impl TryFrom<InvestableInvestmentStrategyDto> for InvestableInvestmentStrategy {
 #[serde(rename_all = "camelCase")]
 pub struct TransferDetail {
     value: ConstrainedMoneyAmountLarge,
-    transfer_to: AccountOrReferenceNumberType
+    transfer_to_provider: Provider,
+    transfer_to_tax_wrapper: TaxWrapperType,
+    transfer_to_account_or_reference_number: Option<AccountOrReferenceNumberType>
 }
 
 impl TryFrom<TransferDetailDto> for TransferDetail {
@@ -1053,10 +1299,11 @@ impl TryFrom<TransferDetailDto> for TransferDetail {
     fn try_from(dto: TransferDetailDto) -> Result<Self, Self::Error> {
         Ok(Self {
             value: dto.value.try_into()?,
-            transfer_to: dto.transfer_to.try_into()?
+            transfer_to_account_or_reference_number: dto.transfer_to_account_or_reference_number.map(|dto| dto.try_into()).transpose()?,
+            transfer_to_provider: dto.transfer_to_provider.try_into()?,
+            transfer_to_tax_wrapper: dto.transfer_to_tax_wrapper.try_into()?
         })
     }
-
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -1259,7 +1506,7 @@ impl TryFrom<InvestmentReplacementProductInformationDto> for InvestmentReplaceme
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum PlatformAccountNumberType {
-    Abrdn(AbrdnFullAccountNumber),
+    Abrdn(AbrdnAccountNumber),
     Transact(TransactPlatformNumber),
     Other(ConstrainedString200)
 }
@@ -1282,6 +1529,16 @@ impl TryFrom<PlatformAccountNumberTypeDto> for PlatformAccountNumberType {
     }
 }
 
+impl fmt::Display for PlatformAccountNumberType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PlatformAccountNumberType::Abrdn(account_number) => write!(f, "{}", account_number),
+            PlatformAccountNumberType::Transact(transact_number) => write!(f, "{}", transact_number),
+            PlatformAccountNumberType::Other(other) => write!(f, "{}", other),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
@@ -1289,7 +1546,8 @@ pub enum AccountOrReferenceNumberType {
     Abrdn(AbrdnFullAccountNumber),
     AbrdnSipp(AbrdnSippNumber),
     Transact(TransactReferenceNumber),
-    Other(ConstrainedString200)
+    Other(ConstrainedString200),
+    NewAccount(Uuid)
 }
 
 impl TryFrom<AccountOrReferenceNumberTypeDto> for AccountOrReferenceNumberType {
@@ -1309,6 +1567,21 @@ impl TryFrom<AccountOrReferenceNumberTypeDto> for AccountOrReferenceNumberType {
             AccountOrReferenceNumberTypeDto::Other(other_reference_number) => {
                 Ok(AccountOrReferenceNumberType::Other(other_reference_number.try_into()?))
             }
+            AccountOrReferenceNumberTypeDto::NewAccount(new_account_reference_number) => {
+                Ok(AccountOrReferenceNumberType::NewAccount(Uuid::parse_str(&new_account_reference_number.as_str()).map_err(|err|format!("Failed to parse UUID: {}", err))?))
+            }
+        }
+    }
+}
+
+impl fmt::Display for AccountOrReferenceNumberType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AccountOrReferenceNumberType::Abrdn(full_account_number) => write!(f, "{}", full_account_number),
+            AccountOrReferenceNumberType::AbrdnSipp(sipp_number) => write!(f, "{}", sipp_number),
+            AccountOrReferenceNumberType::Transact(transact_reference_number) => write!(f, "{}", transact_reference_number),
+            AccountOrReferenceNumberType::Other(other_reference) => write!(f, "{}", other_reference),
+            AccountOrReferenceNumberType::NewAccount(new_account_reference) => write!(f, "{}", new_account_reference),
         }
     }
 }

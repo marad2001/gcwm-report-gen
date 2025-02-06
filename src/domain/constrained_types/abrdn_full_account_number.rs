@@ -1,24 +1,22 @@
 use std::fmt;
 use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
+use regex::Regex;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct AbrdnFullAccountNumber(String);
 
 impl AbrdnFullAccountNumber {
-    pub fn value(&self) -> &String {
+    /// Returns the value of the Abrdn full account number.
+    pub fn value(&self) -> &str {
         &self.0
     }
 
+    /// Validates the format of the Abrdn full account number.
     fn is_valid_format(account_number: &str) -> bool {
-        let prefix_valid = account_number.starts_with("WP");
-        let length_valid = account_number.len() == 13;
-        let suffix_valid = match account_number.get(11..) {
-            Some("-001") | Some("-002") | Some("-003") | Some("-004") | Some("-005") => true,
-            _ => false,
-        };
-
-        prefix_valid && length_valid && suffix_valid && account_number[2..11].chars().all(char::is_numeric)
+        // Regular expression: WP + 7 digits + "-" + 3-digit suffix (001-005)
+        let re = Regex::new(r"^WP\d{7}-(00[1-5])$").unwrap();
+        re.is_match(account_number)
     }
 }
 
@@ -101,3 +99,4 @@ mod tests {
         );
     }
 }
+

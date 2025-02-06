@@ -1,5 +1,6 @@
 use std::fmt;
 use serde::{Deserialize, Serialize};
+use num_format::{Locale, ToFormattedString};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ConstrainedMoneyAmountMedium(f32);
@@ -12,7 +13,13 @@ impl ConstrainedMoneyAmountMedium {
 
 impl fmt::Display for ConstrainedMoneyAmountMedium {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "£{:.2}", self.0) // Formats the value as £500,000.00
+        // Multiply by 100 to work in integer pence (rounding appropriately)
+        let pence = (self.0 * 100.0).round() as i64;
+        let integer_part = pence / 100;
+        let fraction_part = pence % 100;
+        // Format the integer part with thousands separators
+        let formatted_integer = integer_part.to_formatted_string(&Locale::en);
+        write!(f, "£{}.{}", formatted_integer, format!("{:02}", fraction_part))
     }
 }
 
@@ -36,7 +43,12 @@ impl TryFrom<String> for ConstrainedMoneyAmountMedium {
     type Error = &'static str;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let parsed_value = value.trim().replace(",", "").replace("\u{00a3}", "").parse::<f32>().map_err(|_| "Invalid string format for money amount")?;
+        let parsed_value = value
+            .trim()
+            .replace(",", "")
+            .replace("\u{00a3}", "") // Removes the £ symbol
+            .parse::<f32>()
+            .map_err(|_| "Invalid string format for money amount")?;
         ConstrainedMoneyAmountMedium::try_from(parsed_value)
     }
 }

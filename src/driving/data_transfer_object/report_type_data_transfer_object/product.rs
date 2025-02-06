@@ -147,14 +147,14 @@ pub struct FundHoldingDto {
     pub fund_name: String,
     pub isin: Option<String>,
     pub sedol: Option<String>,
-    pub value: Option<f32>,
+    pub value: Option<f64>,
     pub percentage_of_portfolio: Option<f32>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ValuationDto {
-    pub value: f32,
+    pub value: f64,
     pub date_of_valuation: String
 }
 
@@ -330,7 +330,7 @@ pub struct ReplaceDto {
 #[serde(rename_all = "camelCase")]
 pub struct PartialTransferDto {
     pub rationale: String,
-    pub value_to_transfer: f32,
+    pub value_to_transfer: f64,
     pub replacement_product_information: ReplacementProductInformationDto
 }
 
@@ -343,7 +343,7 @@ pub struct FullyEncashDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleWithdrawalDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub date_of_action: Option<String>,
@@ -353,7 +353,7 @@ pub struct SingleWithdrawalDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SingleContributionDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub date_of_action: Option<String>,
@@ -363,7 +363,7 @@ pub struct SingleContributionDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegularContributionDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub frequency: String,
@@ -375,7 +375,7 @@ pub struct RegularContributionDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegularWithdrawalDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub frequency: String,
@@ -387,7 +387,7 @@ pub struct RegularWithdrawalDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub date_of_action: Option<String>,
@@ -398,7 +398,7 @@ pub struct TransferDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StopWithdrawalDto {
-    pub value: f32,
+    pub value: f64,
     pub executive_summary_description: String,
     pub rationale: String,
     pub start_date_of_action: Option<String>,
@@ -416,8 +416,10 @@ pub struct InvestableInvestmentStrategyDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferDetailDto {
-    pub value: f32,
-    pub transfer_to: AccountOrReferenceNumberTypeDto
+    pub value: f64,
+    pub transfer_to_account_or_reference_number: Option<AccountOrReferenceNumberTypeDto>,
+    pub transfer_to_provider: ProviderDto,
+    pub transfer_to_tax_wrapper: TaxWrapperTypeDto
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -453,14 +455,14 @@ pub enum PresentFirmInvestmentStrategyDto {
 #[serde(rename_all = "camelCase")]
 pub struct PensionReplacementProductInformationDto {
     pub start_date: String,
-    pub total_contributions: f32,
-    pub current_transfer_value: f32,
+    pub total_contributions: f64,
+    pub current_transfer_value: f64,
     pub no_of_funds_available: i32,
     pub max_number_of_funds_invested_at_one_time: Option<i32>,
     pub retirement_date_age: i32,
     pub is_waiver_of_premium_insurance_available: bool,
     pub death_benefits_description: String,
-    pub is_life_cover_available: Option<f32>,
+    pub is_life_cover_available: Option<f64>,
     pub loyalty_bonus: Option<f32>,
     pub fund_bonus_enhanced_allocation: Option<f32>,
     pub tax_free_cash_entitlement: f32,
@@ -484,8 +486,8 @@ pub struct PensionReplacementProductInformationDto {
 #[serde(rename_all = "camelCase")]
 pub struct InvestmentReplacementProductInformationDto {
     pub start_date: String,
-    pub total_contributions: f32,
-    pub current_transfer_value: f32,
+    pub total_contributions: f64,
+    pub current_transfer_value: f64,
     pub no_of_funds_available: i32,
     pub max_number_of_funds_invested_at_one_time: Option<i32>,
     pub loyalty_bonus: Option<f32>,
@@ -511,7 +513,8 @@ pub enum AccountOrReferenceNumberTypeDto {
     Abrdn(String),
     AbrdnSipp(String),
     Transact(String),
-    Other(String)
+    Other(String),
+    NewAccount(String)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

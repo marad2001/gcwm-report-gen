@@ -5,14 +5,14 @@ use super::{advice_areas::{AdviceAreaDto, AdviceAreasDto}, product::{ExistingNew
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CoupleAdviceAreasAndProductsDto {
-    client_1: AdviceAreasAndProductsDto,
-    client_2: Option<AdviceAreasAndProductsDto>,
-    joint: Option<AdviceAreasAndProductsDto>
+    pub client_1: Option<AdviceAreasAndProductsDto>,
+    pub client_2: Option<AdviceAreasAndProductsDto>,
+    pub joint: Option<AdviceAreasAndProductsDto>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AdviceAreasAndProductsDto {
-    advice_areas: AdviceAreasDto,
-    products: Option<ProductsDto>
+    pub advice_areas: Option<AdviceAreasDto>,
+    pub products: Option<ProductsDto>
 }

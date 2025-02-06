@@ -6,6 +6,12 @@ use crate::{domain::constrained_types::{constrained_string_1000::ConstrainedStri
 #[serde(rename_all = "camelCase")]
 pub struct AdviceAreas(Vec<AdviceArea>);
 
+impl AdviceAreas {
+    pub fn value(&self) -> &Vec<AdviceArea> {
+        &self.0
+    }
+}
+
 impl TryFrom<AdviceAreasDto> for AdviceAreas {
     type Error = String;
 
@@ -28,6 +34,18 @@ pub enum AdviceArea {
     EmergencyFund(EmergencyFundAdvice),
     Poa(PoaAdvice),
     Other(OtherAdvice)
+}
+
+impl AdviceArea {
+    pub fn title(&self) -> String {
+        match self {
+            Self::EmergencyFund(_) => "Emergency Fund".to_string(),
+            Self::Iht(_) => "Inheritance Tax".to_string(),
+            Self::Poa(_) => "Power Of Attorney".to_string(),
+            Self::Will(_) => "Will".to_string(),
+            Self::Other(other_advice) => other_advice.advice_description.to_string()
+        }
+    }
 }
 
 impl TryFrom<&AdviceAreaDto> for AdviceArea {
@@ -78,30 +96,30 @@ impl TryFrom<&AdviceAreaDto> for AdviceArea {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IhtAdvice {
-    advice: ConstrainedString1000
+    pub advice: ConstrainedString1000
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct WillAdvice {
-    advice: ConstrainedString1000
+    pub advice: ConstrainedString1000
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EmergencyFundAdvice {
-    advice: ConstrainedString1000
+    pub advice: ConstrainedString1000
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PoaAdvice {
-    advice: ConstrainedString1000
+    pub advice: ConstrainedString1000
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OtherAdvice {
-    advice_description: ConstrainedString20,
-    advice: ConstrainedString1000
+    pub advice_description: ConstrainedString20,
+    pub advice: ConstrainedString1000
 }

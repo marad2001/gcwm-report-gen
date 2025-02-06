@@ -41,6 +41,8 @@ impl TryFrom<String> for Date {
             return Err("Date cannot be empty.".to_string());
         }
 
+        println!("Date: {:?}", value);
+
         // Attempt to parse the date in UK format (DD/MM/YYYY)
         let parsed_date = NaiveDate::parse_from_str(&value, "%d/%m/%Y")
             .map_err(|_| "Invalid date format. Expected DD/MM/YYYY.".to_string())?;

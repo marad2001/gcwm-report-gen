@@ -24,7 +24,7 @@ pub struct CoupleAnnualReviewReportSections {
     // executive_summary: ExecutiveSummarySection
     background: BackgroundSection,
     current_circumstances: CurrentCircumstancesSection,
-    //recommendations: RecommendationsSection
+    recommendations: RecommendationsSection
 }
 
 impl CoupleAnnualReviewReportSections {
@@ -61,18 +61,22 @@ impl CoupleAnnualReviewReportSections {
             ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
-        // let recommendations_section = RecommendationsSection::CoupleAnnualReviewReportRecommendationsSection(
-        //     CoupleAnnualReviewReportRecommendationsSection::new(
-                
-        //     ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))
-        // );
+        let recommendations_section = RecommendationsSection::CoupleAnnualReviewReportRecommendationsSection(
+            CoupleAnnualReviewReportRecommendationsSection::new(
+                validated_individual_one_first_name,
+                validated_individual_one_first_name,
+                validated_individual_one_last_name,
+                validated_individual_two_last_name,
+                unvalidated_sections.recommendations
+            ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
+        );
 
         Ok(Self {
             cover: couple_annual_review_report_cover_section,
             contents: ContentsSection::AnnualReviewReportContentsSection(AnnualReviewReportContentsSection::new()?),
             background: BackgroundSection::CoupleAnnualReviewReportBackgroundSection(CoupleAnnualReviewReportBackgroundSection::new(unvalidated_sections.background)?),
             current_circumstances: current_circumstances_section,
-            //recommendations: recommendations_section
+            recommendations: recommendations_section
         })
 
     }
