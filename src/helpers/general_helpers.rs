@@ -64,13 +64,21 @@ pub fn construct_objective_bullet_points(objective_types: &Vec<ObjectiveType>) -
     let mut objectives_bullet_points = Vec::new();
     for objective_type in objective_types {
         match objective_type {
-            ObjectiveType::IncomeObjectiveYear(income_objective_year) => {
+            ObjectiveType::CoupleIncomeObjective(income_objective_year) => {
                 objectives_bullet_points.push(
                     format!(
-                        "Generate {} retirement income stream, {}, inflation adjusted from {} until mortality.", 
+                        "Generate {} retirement income stream, {}, inflation adjusted from until mortality.", 
                         income_objective_year.annual_income,
                         income_objective_year.frequency.to_string(),
-                        income_objective_year.from_year.value()
+                    )
+                );
+            }
+            ObjectiveType::IncomeObjective(income_objective_year) => {
+                objectives_bullet_points.push(
+                    format!(
+                        "Generate {} retirement income stream, {}, inflation adjusted from until mortality.", 
+                        income_objective_year.annual_income,
+                        income_objective_year.frequency.to_string(),
                     )
                 );
             }
@@ -112,7 +120,12 @@ pub fn construct_objective_to_risk_profile_couple_client_1_or_2_bullet_points(cl
     let mut objective_to_risk_profile_bullet_points = Vec::new();
     for objective_type in objective_types {
         match objective_type {
-            ObjectiveType::IncomeObjectiveYear(obj) => {
+            ObjectiveType::CoupleIncomeObjective(obj) => {
+                objective_to_risk_profile_bullet_points.push(
+                    format!("{} - Retirement income objective: {}", client_name, obj.linked_risk_profile.to_string()).to_string()
+                )
+            }
+            ObjectiveType::IncomeObjective(obj) => {
                 objective_to_risk_profile_bullet_points.push(
                     format!("{} - Retirement income objective: {}", client_name, obj.linked_risk_profile.to_string()).to_string()
                 )
@@ -152,7 +165,12 @@ pub fn construct_objective_to_risk_profile_couple_shared_bullet_points(
     if objective_to_risk_profile_bullets_client_1.is_empty() && objective_to_risk_profile_bullets_client_2.is_empty() {
         for objective_type in shared_objective_types {
             match objective_type {
-                ObjectiveType::IncomeObjectiveYear(obj) => {
+                ObjectiveType::CoupleIncomeObjective(obj) => {
+                    objective_to_risk_profile_bullet_points.push(
+                        format!("Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
+                    )
+                }
+                ObjectiveType::IncomeObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
                         format!("Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )
@@ -182,7 +200,12 @@ pub fn construct_objective_to_risk_profile_couple_shared_bullet_points(
     } else {
         for objective_type in shared_objective_types {
             match objective_type {
-                ObjectiveType::IncomeObjectiveYear(obj) => {
+                ObjectiveType::CoupleIncomeObjective(obj) => {
+                    objective_to_risk_profile_bullet_points.push(
+                        format!("Joint - Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
+                    )
+                }
+                ObjectiveType::IncomeObjective(obj) => {
                     objective_to_risk_profile_bullet_points.push(
                         format!("Joint - Retirement income objective: {}", obj.linked_risk_profile.to_string()).to_string()
                     )

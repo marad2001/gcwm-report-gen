@@ -7,7 +7,9 @@ use crate::domain::report::contents_section::ContentsSection;
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_background_section::CoupleAnnualReviewReportBackgroundSection;
 use crate::domain::report::couple_annual_review_report::couple_annual_review_report_cover_section::CoupleAnnualReviewReportCoverSection;
 use crate::domain::report::contents_section::AnnualReviewReportContentsSection;
+use crate::domain::report::objectives::CoupleObjectivesAnnualReview;
 use crate::domain::report::ReportError;
+use crate::domain::DomainError;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_annual_review_data_transfer_object::couple_annual_review_report_sections_data_transfer_object::CoupleAnnualReviewReportSectionsDataTransferObject;
 use crate::domain::report::current_circumstances_section::CurrentCircumstancesSection;
 use crate::domain::report::recommendations_section::RecommendationsSection;
@@ -49,6 +51,8 @@ impl CoupleAnnualReviewReportSections {
             ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 
+        let couple_objectives_annual_review: CoupleObjectivesAnnualReview = CoupleObjectivesAnnualReview::try_from(unvalidated_sections.current_circumstances.couple_objectives).map_err(|e| DomainError::ValidationError("Couple objectives validation error".to_string()))?;
+
         let current_circumstances_section = CurrentCircumstancesSection::CoupleAnnualReviewReportCurrentCircumstancesSection(
             CoupleAnnualReviewReportCurrentCircumstancesSection::new(
                 validated_individual_one_first_name,
@@ -56,7 +60,7 @@ impl CoupleAnnualReviewReportSections {
                 unvalidated_sections.current_circumstances.last_review_report_date,
                 unvalidated_sections.current_circumstances.last_meeting_date,
                 unvalidated_sections.current_circumstances.is_change_in_circumstances,
-                unvalidated_sections.current_circumstances.couple_objectives,
+                &couple_objectives_annual_review,
                 unvalidated_sections.current_circumstances.couple_is_risk_tolerance_change
             ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
@@ -64,10 +68,11 @@ impl CoupleAnnualReviewReportSections {
         let recommendations_section = RecommendationsSection::CoupleAnnualReviewReportRecommendationsSection(
             CoupleAnnualReviewReportRecommendationsSection::new(
                 validated_individual_one_first_name,
-                validated_individual_one_first_name,
+                validated_individual_two_first_name,
                 validated_individual_one_last_name,
                 validated_individual_two_last_name,
-                unvalidated_sections.recommendations
+                unvalidated_sections.recommendations,
+                &couple_objectives_annual_review
             ).map_err(|(section, error)| ReportError::SectionValidationError(section, error))?
         );
 

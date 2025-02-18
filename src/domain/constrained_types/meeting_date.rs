@@ -2,7 +2,7 @@ use std::fmt;
 use chrono::{NaiveDate, ParseError, Datelike};
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct MeetingDate(NaiveDate);
 
 impl MeetingDate {

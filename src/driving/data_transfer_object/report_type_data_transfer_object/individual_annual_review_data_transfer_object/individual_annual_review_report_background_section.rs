@@ -7,8 +7,8 @@ use crate::{domain::traits::BackgroundSectionDtoTrait, driving::data_transfer_ob
 #[serde(rename_all = "camelCase")]
 pub struct IndividualAnnualReviewBackgroundSectionDataTransferObject{
     pub meeting_location: MeetingLocationDataTransferObject,
-    pub additional_attendees: Vec<AdditionalMeetingAttendeeDataTransferObject>,
-    pub additional_company_attendees: Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>,
+    pub additional_attendees: Option<Vec<AdditionalMeetingAttendeeDataTransferObject>>,
+    pub additional_company_attendees: Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>>,
     pub meeting_date: NaiveDate
 }
 
@@ -21,11 +21,11 @@ impl BackgroundSectionDtoTrait for IndividualAnnualReviewBackgroundSectionDataTr
         self.meeting_date.format("%d/%m/%Y").to_string()
     }
 
-    fn get_additional_attendees(&self) -> &Vec<AdditionalMeetingAttendeeDataTransferObject> {
+    fn get_additional_attendees(&self) -> &Option<Vec<AdditionalMeetingAttendeeDataTransferObject>> {
         &self.additional_attendees
     }
 
-    fn get_additional_company_attendees(&self) -> &Vec<AdditionalCompanyMeetingAttendeeDataTransferObject> {
+    fn get_additional_company_attendees(&self) -> &Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>> {
         &self.additional_company_attendees
     }
 }

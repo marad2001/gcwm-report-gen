@@ -22,19 +22,24 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
     
     let method = event.method();
     let path_parameters = event.path_parameters();
-    let payload = event.payload::<driving::data_transfer_object::DataTransferObject>()?;
+    println!("Path Parameters: {:?}", path_parameters.first("proxy"));
+    let payload = if path_parameters.first("proxy") == Some("test") {
+        Some(helpers::test_helpers::create_mock_data_transfer_object())
+    } else {
+        event.payload::<driving::data_transfer_object::DataTransferObject>()?
+    };
 
     println!("Payload: {:?}", payload);
 
     match method {
         &Method::POST => {
-            if !path_parameters.is_empty() {
+            // if !path_parameters.is_empty() {
                 
-                let unexpected_additional_parameters_response = helpers::response_helpers::message_response("Unexpected additional parameters included");
+            //     let unexpected_additional_parameters_response = helpers::response_helpers::message_response("Unexpected additional parameters included");
 
-                unexpected_additional_parameters_response
+            //     unexpected_additional_parameters_response
 
-            } else {
+            // } else {
 
                 match payload {
                     Some(data_transfer_object) => {
@@ -62,7 +67,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
                     }
                 }
             }
-        }
+        // }
         _ => {
             
             let no_method_context_received_response = helpers::response_helpers::message_response("No method context received by lambda function");

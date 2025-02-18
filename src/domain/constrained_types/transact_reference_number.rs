@@ -14,7 +14,7 @@ impl TransactReferenceNumber {
     /// Validates the format of the TransactReferenceNumber.
     fn is_valid_format(number: &str) -> bool {
         number.starts_with("IH")
-            && number.len() == 11
+            && number.len() == 10
             && number[2..].chars().all(|c| c.is_numeric())
     }
 }
@@ -32,7 +32,7 @@ impl TryFrom<String> for TransactReferenceNumber {
         if TransactReferenceNumber::is_valid_format(&value) {
             Ok(TransactReferenceNumber(value))
         } else {
-            Err("Invalid TransactReferenceNumber format. Must start with 'IH' followed by 9 numeric digits.")
+            Err("Invalid TransactReferenceNumber format. Must start with 'IH' followed by 8 numeric digits.")
         }
     }
 }
@@ -51,8 +51,8 @@ mod tests {
 
     #[test]
     fn test_valid_reference_numbers() {
-        let reference = TransactReferenceNumber::try_from("IH01423045").unwrap();
-        assert_eq!(reference.value(), "IH01423045");
+        let reference = TransactReferenceNumber::try_from("IH00406663").unwrap();
+        assert_eq!(reference.value(), "IH00406663");
 
         let reference = TransactReferenceNumber::try_from("IH12345678").unwrap();
         assert_eq!(reference.value(), "IH12345678");
@@ -64,7 +64,7 @@ mod tests {
         assert!(reference.is_err());
         assert_eq!(
             reference.err().unwrap(),
-            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 9 numeric digits."
+            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 8 numeric digits."
         );
     }
 
@@ -74,7 +74,7 @@ mod tests {
         assert!(reference.is_err());
         assert_eq!(
             reference.err().unwrap(),
-            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 9 numeric digits."
+            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 8 numeric digits."
         );
     }
 
@@ -84,7 +84,7 @@ mod tests {
         assert!(reference.is_err());
         assert_eq!(
             reference.err().unwrap(),
-            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 9 numeric digits."
+            "Invalid TransactReferenceNumber format. Must start with 'IH' followed by 8 numeric digits."
         );
     }
 
@@ -95,3 +95,4 @@ mod tests {
         assert_eq!(reference.unwrap().value(), "IH98765432");
     }
 }
+

@@ -11,6 +11,8 @@ pub enum CurrentCircumstancesSection {
     CoupleAnnualReviewReportCurrentCircumstancesSection(CoupleAnnualReviewReportCurrentCircumstancesSection),
 }
 
+
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum IsChangeInCircumstances {

@@ -23,7 +23,8 @@ pub enum ChangeInObjectivesDto {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum ObjectiveTypeDto {
-    IncomeObjectiveYear(IncomeObjectiveYearDto),
+    CoupleIncomeObjective(CoupleIncomeObjectiveDto),
+    IncomeObjective(IncomeObjectiveDto),
     InRetirementIncomeObjective(InRetirementIncomeObjectiveDto),
     CapitalProtectionObjective(CapitalProtectionObjectiveDto),
     IhtObjective(IhtObjectiveDto),
@@ -32,11 +33,30 @@ pub enum ObjectiveTypeDto {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct IncomeObjectiveYearDto {
+pub struct CoupleIncomeObjectiveDto {
     pub id: Uuid,
     pub annual_income: f32,
     pub frequency: String,
-    pub from_year: i32,
+    pub from_year: Option<i32>,
+    pub from_age: Option<ClientFromAgeDto>,
+    pub linked_risk_profile: RiskProfileDto
+}
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
+pub enum ClientFromAgeDto {
+    Client1(i32),
+    Client2(i32)
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct IncomeObjectiveDto {
+    pub id: Uuid,
+    pub annual_income: f32,
+    pub frequency: String,
+    pub from_year: Option<i32>,
+    pub from_age: Option<i32>,
     pub linked_risk_profile: RiskProfileDto
 }
 

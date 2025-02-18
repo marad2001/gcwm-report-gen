@@ -41,17 +41,16 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
     pub fn new(
         client_1_first_name: &NameString,
         client_2_first_name: &NameString,
-        last_review_report_date: NaiveDate,
-        last_meeting_date: NaiveDate,
+        last_review_report_date: String,
+        last_meeting_date: String,
         is_change_in_circumstances: IsChangeInCircumstancesDto,
-        couple_objectives: CoupleObjectivesAnnualReviewDto,
+        couple_objectives: &CoupleObjectivesAnnualReview,
         couple_is_risk_tolerance_change: CoupleIsChangeRiskToleranceDto,
     ) -> Result<Self, (String, String)> {
 
         let section_error_str = "Current Circumstances";
-        let last_annual_review_report = LastReviewReportAndMeetingDate::try_from(last_review_report_date.format("%d/%m/%Y").to_string()).map_err(|e|(section_error_str.to_string(), e))?.formatted_day_month_year();
+        let last_annual_review_report = LastReviewReportAndMeetingDate::try_from(last_review_report_date).map_err(|e|(section_error_str.to_string(), e))?.formatted_day_month_year();
         let is_change_in_circumstances = IsChangeInCircumstances::try_from(is_change_in_circumstances).map_err(|e|(section_error_str.to_string(), e))?;
-        let couple_objectives = CoupleObjectivesAnnualReview::try_from(couple_objectives).map_err(|e|(section_error_str.to_string(), e))?;
         let couple_is_risk_tolerance_change = CoupleIsChangeRiskTolerance::try_from(couple_is_risk_tolerance_change).map_err(|e|(section_error_str.to_string(), e))?;
         let extracted_objectives = extract_objectives_from_couple_objectives_annual_review(&couple_objectives);
         let objectives_bullet_points_introduction = String::from("To confirm, those objectives are as follows:");
@@ -64,7 +63,7 @@ impl CoupleAnnualReviewReportCurrentCircumstancesSection {
 
             let first_paragraph = construct_first_paragraph(
                 &is_change_in_circumstances,
-                &LastReviewReportAndMeetingDate::try_from(last_meeting_date.format("%d/%m/%Y").to_string()).map_err(|e|(section_error_str.to_string(), e))?
+                &LastReviewReportAndMeetingDate::try_from(last_meeting_date).map_err(|e|(section_error_str.to_string(), e))?
             );
 
             let circumstances_bullet_points_introduction = construct_circumstances_bullet_points_introduction(&is_change_in_circumstances);

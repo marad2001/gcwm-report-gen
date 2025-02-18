@@ -16,9 +16,9 @@ impl LastReviewReportAndMeetingDate {
         let day = self.0.day();
         let suffix = match day {
             1 | 21 | 31 => "st",
-            2 | 22 => "nd",
-            3 | 23 => "rd",
-            _ => "th",
+            2 | 22    => "nd",
+            3 | 23    => "rd",
+            _         => "th",
         };
         let month = self.0.format("%B").to_string(); // Full month name
         let year = self.0.year();
@@ -49,11 +49,12 @@ impl TryFrom<String> for LastReviewReportAndMeetingDate {
         // Get the current date
         let today = Utc::now().naive_utc().date();
 
-        // Ensure the date is not more than 2 years in the past
-        let two_years_ago = today - Duration::days(730);
-        if parsed_date < two_years_ago {
+        // Ensure the date is not more than 4 years in the past.
+        // (Approximately 4 years = 1460 days.)
+        let four_years_ago = today - Duration::days(1460);
+        if parsed_date < four_years_ago {
             return Err(format!(
-                "Meeting date cannot be more than 2 years in the past. Provided date: {}",
+                "Meeting date cannot be more than 4 years in the past. Provided date: {}",
                 parsed_date.format("%d/%m/%Y")
             ));
         }
@@ -77,7 +78,7 @@ mod tests {
     use chrono::NaiveDate;
 
     #[test]
-    fn test_valid_date_within_2_years() {
+    fn test_valid_date_within_4_years() {
         let date_str = "20/01/2023".to_string();
         let result = LastReviewReportAndMeetingDate::try_from(date_str);
         assert!(result.is_ok());
@@ -86,11 +87,15 @@ mod tests {
     }
 
     #[test]
-    fn test_date_more_than_2_years_old() {
-        let date_str = "19/01/2021".to_string();
+    fn test_date_more_than_4_years_old() {
+        // Using a date more than 4 years old (e.g. 19/01/2019)
+        let date_str = "19/01/2019".to_string();
         let result = LastReviewReportAndMeetingDate::try_from(date_str);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Meeting date cannot be more than 2 years in the past. Provided date: 19/01/2021".to_string());
+        assert_eq!(
+            result.unwrap_err(),
+            "Meeting date cannot be more than 4 years in the past. Provided date: 19/01/2019".to_string()
+        );
     }
 
     #[test]
@@ -98,7 +103,10 @@ mod tests {
         let date_str = "20/01/2026".to_string();
         let result = LastReviewReportAndMeetingDate::try_from(date_str);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Meeting date must be in the past. Provided date: 20/01/2026".to_string());
+        assert_eq!(
+            result.unwrap_err(),
+            "Meeting date must be in the past. Provided date: 20/01/2026".to_string()
+        );
     }
 
     #[test]
@@ -106,7 +114,10 @@ mod tests {
         let date_str = "2023-01-20".to_string();
         let result = LastReviewReportAndMeetingDate::try_from(date_str);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Invalid date format. Expected DD/MM/YYYY.".to_string());
+        assert_eq!(
+            result.unwrap_err(),
+            "Invalid date format. Expected DD/MM/YYYY.".to_string()
+        );
     }
 
     #[test]

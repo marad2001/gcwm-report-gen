@@ -8,6 +8,10 @@ impl AdviceAreasDto {
     pub fn value(&self) -> &Vec<AdviceAreaDto>{
         &self.0
     }
+
+    pub fn new(advice_areas: Vec<AdviceAreaDto>) -> Self {
+        Self(advice_areas)
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

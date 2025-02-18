@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct AnnualReviewBackgroundSectionDataTransferObject{
     pub meeting_location: MeetingLocationDataTransferObject,
-    pub additional_attendees: Vec<AdditionalMeetingAttendeeDataTransferObject>,
-    pub additional_company_attendees: Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>,
-    pub meeting_date: NaiveDate
+    pub additional_attendees: Option<Vec<AdditionalMeetingAttendeeDataTransferObject>>,
+    pub additional_company_attendees: Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>>,
+    pub meeting_date: String
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

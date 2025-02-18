@@ -25,3 +25,4 @@ pub mod abrdn_full_account_number;
 pub mod transact_platform_number;
 pub mod transact_reference_number;
 pub mod abrdn_sipp_number;
+pub mod bank_account_numbers;

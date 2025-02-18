@@ -2,10 +2,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use std::convert::TryFrom;
 use std::fmt;
+use std::collections::HashMap;
+use std::str::FromStr;
 
 use crate::domain::constrained_types::abrdn_account_number::AbrdnAccountNumber;
 use crate::domain::constrained_types::abrdn_full_account_number::AbrdnFullAccountNumber;
 use crate::domain::constrained_types::abrdn_sipp_number::AbrdnSippNumber;
+use crate::domain::constrained_types::bank_account_numbers::{BankSortCode, BankAccountNumber};
 use crate::domain::constrained_types::transact_platform_number::TransactPlatformNumber;
 use crate::domain::constrained_types::transact_reference_number::TransactReferenceNumber;
 use crate::domain::constrained_types::{
@@ -25,6 +28,7 @@ use crate::domain::constrained_types::{
 };
 use crate::domain::constrained_types::date::Date;
 use crate::domain::constrained_types::tax_year::TaxYear;
+use super::investment_holdings::{FundHolding, InvestmentStrategy};
 use super::risk_assessment::RiskProfile;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::product::*;
 
@@ -74,6 +78,29 @@ impl Products {
             })
             .collect()
     }
+
+    /// Returns a HashMap mapping account or reference numbers to their corresponding products.
+    pub fn products_by_account_number_or_new_product_id(&self) -> HashMap<String, &ExistingNewJointSingleProduct> {
+        let mut map = HashMap::new();
+
+        for product in &self.0 {
+            let account_number = match product {
+                ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(p) => p.account_or_reference_number.to_string(),
+                ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(p) => p.account_or_reference_number.to_string(),
+                ExistingNewJointSingleProduct::NewSingleOwnedProduct(p) => {
+                    match &p.account_or_reference_number { 
+                        Some(account_number) => account_number.to_string(),
+                        None => p.id.to_string()
+                    }
+                }
+            };
+
+            map.insert(account_number, product);
+        }
+
+        map
+    }
+
     
 }
 
@@ -88,16 +115,73 @@ impl ExistingProduct {
     /// Returns the provider as a string.
     pub fn provider_as_string(&self) -> String {
         match self {
-            ExistingProduct::JointlyOwned(product) => product.provider.0.to_string(),
-            ExistingProduct::SingleOwned(product) => product.provider.0.to_string(),
+            ExistingProduct::JointlyOwned(product) => {
+                match &product.account_type {
+                    CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+                    CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                    CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                }
+            }
+            ExistingProduct::SingleOwned(product) => {
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => iss.provider.0.to_string(),
+                    AccountType::SelfInvestedPersonalPension(sipp) => sipp.provider.0.to_string(),
+                    AccountType::PersonalPension(pp) => pp.provider.0.to_string(),
+                    AccountType::JuniorIsaStocksAndShares(jisa) => jisa.provider.0.to_string(),
+                    AccountType::CashIsa(ci) => ci.provider.0.to_string(),
+                    AccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+                    AccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                    AccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                }
+            }
         }
     }
 
-    /// Returns the tax wrapper type as a string.
-    pub fn tax_wrapper_type_as_string(&self) -> String {
+    /// Returns the account type as a string.
+    pub fn account_type_as_string(&self) -> String {
         match self {
-            ExistingProduct::JointlyOwned(product) => product.tax_wrapper_type.to_string(),
-            ExistingProduct::SingleOwned(product) => product.tax_wrapper_type.to_string(),
+            ExistingProduct::JointlyOwned(product) => product.account_type.to_string(),
+            ExistingProduct::SingleOwned(product) => product.account_type.to_string(),
+        }
+    }
+
+    /// Returns the account type as a string with brackets short name.
+    pub fn account_type_as_full_name_brackets_string_short_name(&self) -> String {
+        match self {
+            ExistingProduct::JointlyOwned(product) => {
+                product.account_type.account_type_as_full_name_brackets_string_short_name()
+            }
+            ExistingProduct::SingleOwned(product) => {
+                product.account_type.account_type_as_full_name_brackets_string_short_name()
+            }
+        }
+    }
+
+    /// Returns the platform or account number.
+    /// The platform or account number is a higher level account number within which numerous account or reference numbers can be 
+    /// held which are unique identifiers to the individual tax wrappers themselves.
+    pub fn platform_account_number(&self) -> &Option<PlatformAccountNumberType> {
+        match self {
+            ExistingProduct::JointlyOwned(product) => &product.platform_or_account_number,
+            ExistingProduct::SingleOwned(product) => &product.platform_or_account_number,
+        }
+    }
+
+    /// Returns the platform or account number as a string.
+    pub fn platform_account_number_as_string(&self) -> Option<String> {
+        match self {
+            ExistingProduct::JointlyOwned(product) => product.platform_or_account_number.as_ref().map(|platform_number| platform_number.to_string()),
+            ExistingProduct::SingleOwned(product) => product.platform_or_account_number.as_ref().map(|platform_number| platform_number.to_string()),
+        }
+    }
+
+    /// Returns the account or reference number as a string.
+    /// The unique identifier for each tax wrapper held within a platform / wrap account.
+    /// For new accounts where an account or reference number is not provided a temporary uuid is used in place.
+    pub fn account_or_reference_number(&self) -> &AccountOrReferenceNumberType {
+        match self {
+            ExistingProduct::JointlyOwned(product) => &product.account_or_reference_number,
+            ExistingProduct::SingleOwned(product) => &product.account_or_reference_number,
         }
     }
 
@@ -112,20 +196,80 @@ impl ExistingProduct {
     /// Returns a reference to the provider.
     pub fn provider(&self) -> &Provider {
         match self {
-            ExistingProduct::JointlyOwned(product) => &product.provider,
-            ExistingProduct::SingleOwned(product) => &product.provider,
+            ExistingProduct::JointlyOwned(product) => {
+                match &product.account_type {
+                    CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
+            }
+            ExistingProduct::SingleOwned(product) => {
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => &iss.provider,
+                    AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+                    AccountType::PersonalPension(pp) => &pp.provider,
+                    AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+                    AccountType::CashIsa(ci) => &ci.provider,
+                    AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
+            }
         }
     }
 
     /// Returns a reference to the retention recommendation.
     pub fn product_retention(&self) -> &ProductRetention {
         match self {
-            ExistingProduct::JointlyOwned(product) => &product.recommendations.product_retention,
-            ExistingProduct::SingleOwned(product) => &product.recommendations.product_retention,
+            ExistingProduct::JointlyOwned(product) => {
+                match &product.account_type {
+                    CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => &gia.recommendations.product_retention,
+                    CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+                    CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+                }
+            }
+            ExistingProduct::SingleOwned(product) => {
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => &iss.recommendations.product_retention,
+                    AccountType::SelfInvestedPersonalPension(sipp) => &sipp.recommendations.product_retention,
+                    AccountType::PersonalPension(pp) => &pp.recommendations.product_retention,
+                    AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.recommendations.product_retention,
+                    AccountType::CashIsa(ci) => &ci.recommendations.product_retention,
+                    AccountType::GeneralInvestmentAccount(gia) => &gia.recommendations.product_retention,
+                    AccountType::OnshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+                    AccountType::OffshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+                }
+            }
         }
     }
-    
-    
+
+    /// Returns a reference to the rationale stored in the product retention recommendations.
+    pub fn rationale(&self) -> &ConstrainedString1000 {
+        let retention = self.product_retention();
+        match retention {
+            ProductRetention::Retain(retain) => &retain.rationale,
+            ProductRetention::Replace(replace) => {
+                match replace {
+                    Replace::FullyReplace(fully) => &fully.rationale,
+                    Replace::PartiallyReplace(partial) => &partial.rationale,
+                }
+            }
+            ProductRetention::FullyEncash(encash) => &encash.rationale,
+        }
+    }
+
+    /// Returns a reference to the linked objectives (a vector of Uuid) if available.
+    /// If the underlying product retention is not of type Retain, returns None.
+    pub fn linked_objectives(&self) -> Option<&Vec<Uuid>> {
+        // Retrieve the product retention from the inner product.
+        let retention = self.product_retention();
+        if let ProductRetention::Retain(retain) = retention {
+            Some(&retain.linked_objectives)
+        } else {
+            None
+        }
+    }
+
 }
 
 
@@ -139,33 +283,84 @@ impl NewProduct {
     /// Returns the provider as a string.
     pub fn provider_as_string(&self) -> String {
         match self {
-            NewProduct::SingleOwned(product) => product.provider.0.to_string(),
+            NewProduct::SingleOwned(product) => {
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => iss.provider.0.to_string(),
+                    AccountType::SelfInvestedPersonalPension(sipp) => sipp.provider.0.to_string(),
+                    AccountType::PersonalPension(pp) => pp.provider.0.to_string(),
+                    AccountType::JuniorIsaStocksAndShares(jisa) => jisa.provider.0.to_string(),
+                    AccountType::CashIsa(ci) => ci.provider.0.to_string(),
+                    AccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+                    AccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                    AccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+                }
+            }
         }
     }
 
     /// Returns the tax wrapper type as a string.
     pub fn tax_wrapper_type_as_string(&self) -> String {
         match self {
-            NewProduct::SingleOwned(product) => product.tax_wrapper_type.to_string(),
+            NewProduct::SingleOwned(product) => product.account_type.to_string(),
+        }
+    }
+
+    /// Returns the platform or account number.
+    /// The platform or account number is a higher level account number within which numerous account or reference numbers can be 
+    /// held which are unique identifiers to the individual tax wrappers themselves.
+    pub fn platform_account_number(&self) -> &Option<PlatformAccountNumberType> {
+        match self {
+            NewProduct::SingleOwned(product) => &product.platform_or_account_number,
         }
     }
 
     /// Returns the account or reference number as a string.
-    pub fn account_or_reference_number_as_string(&self) -> String {
+    /// The unique identifier for each tax wrapper held within a platform / wrap account.
+    /// For new accounts where an account or reference number is not provided a temporary uuid is used in place.
+    pub fn account_or_reference_number_or_id_as_string(&self) -> String {
         match self {
-            NewProduct::SingleOwned(product) => product.account_or_reference_number.to_string(),
+            NewProduct::SingleOwned(product) => {
+                match &product.account_or_reference_number { 
+                    Some(account_number) => account_number.to_string(),
+                    None => product.id.to_string()
+                }
+            }
         }
     }
 
-   
+    pub fn account_or_reference_number(&self) -> &Option<AccountOrReferenceNumberType> {
+        match self {
+            NewProduct::SingleOwned(product) => {
+                &product.account_or_reference_number
+            }
+        }
+    }
+
     /// Returns a reference to the provider.
     pub fn provider(&self) -> &Provider {
         match self {
-            NewProduct::SingleOwned(product) => &product.provider,
+            NewProduct::SingleOwned(product) => {
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => &iss.provider,
+                    AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+                    AccountType::PersonalPension(pp) => &pp.provider,
+                    AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+                    AccountType::CashIsa(ci) => &ci.provider,
+                    AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
+            }
         }
     }
- 
-    
+
+    /// Returns a reference to the rationale stored in the new product recommendations.
+    pub fn rationale(&self) -> &ConstrainedString1000 {
+        match self {
+            NewProduct::SingleOwned(product) => &product.recommendations.rationale,
+        }
+    }
+
 }
 
 
@@ -199,23 +394,22 @@ impl TryFrom<ExistingNewJointSingleProductDto> for ExistingNewJointSingleProduct
 }
 
 impl ExistingNewJointSingleProduct {
-    
     /// Returns the tax wrapper type as a string.
     pub fn tax_wrapper_type_as_string(&self) -> String {
         match self {
             ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
-                product.tax_wrapper_type.to_string()
+                product.account_type.to_string()
             }
             ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
-                product.tax_wrapper_type.to_string()
+                product.account_type.to_string()
             }
             ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
-                product.tax_wrapper_type.to_string()
+                product.account_type.to_string()
             }
         }
     }
 
-    /// Returns the account or reference number as a string.
+    /// Returns the account, reference number or id of new product as a string.
     pub fn account_or_reference_number_as_string(&self) -> String {
         match self {
             ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
@@ -225,165 +419,736 @@ impl ExistingNewJointSingleProduct {
                 product.account_or_reference_number.to_string()
             }
             ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
-                product.account_or_reference_number.to_string()
+                product.account_or_reference_number_or_id_as_string()
             }
         }
     }
 
     /// Returns the platform account number as a string.
-    pub fn platform_account_number_as_string(&self) -> String {
+    pub fn platform_account_number_as_string(&self) -> Option<String> {
         match self {
             ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
-                product.platform_account_number.to_string()
+                product.platform_or_account_number.as_ref().map(|platform_number| platform_number.to_string())
             }
             ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
-                product.platform_account_number.to_string()
+                product.platform_or_account_number.as_ref().map(|platform_number| platform_number.to_string())
             }
             ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
-                product.platform_account_number.to_string()
+                product.platform_or_account_number.as_ref().map(|num| num.to_string())
             }
         }
     }
 
-    /// Returns the provider.
+    /// Returns a reference to the provider.
     pub fn provider(&self) -> &Provider {
         match self {
             ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
-                &product.provider
+                match &product.account_type {
+                    CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
             }
             ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
-                &product.provider
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => &iss.provider,
+                    AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+                    AccountType::PersonalPension(pp) => &pp.provider,
+                    AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+                    AccountType::CashIsa(ci) => &ci.provider,
+                    AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
             }
             ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
-                &product.provider
+                match &product.account_type {
+                    AccountType::IsaStocksAndShares(iss) => &iss.provider,
+                    AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+                    AccountType::PersonalPension(pp) => &pp.provider,
+                    AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+                    AccountType::CashIsa(ci) => &ci.provider,
+                    AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+                    AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+                    AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+                }
             }
         }
     }
 
     /// Returns the provider as a string.
     pub fn provider_as_string(&self) -> String {
-        match self {
-            ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(product) => {
-                product.provider.0.to_string()  // Access inner Providers enum
-            }
-            ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(product) => {
-                product.provider.0.to_string()
-            }
-            ExistingNewJointSingleProduct::NewSingleOwnedProduct(product) => {
-                product.provider.0.to_string()
-            }
-        }
+        self.provider().0.to_string()  // Access inner Providers enum
     }
-
-
-
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct ExistingJointlyOwnedProduct {
-    ownership: Ownership,
-    provider: Provider,
-    platform_account_number: PlatformAccountNumberType,
+    id: Uuid, 
+    platform_or_account_number: Option<PlatformAccountNumberType>,
     account_or_reference_number: AccountOrReferenceNumberType,
-    optional_description: Option<ConstrainedString200>,
-    tax_wrapper_type: TaxWrapperType,
-    current_investment_strategy: CurrentInvestmentStrategy,
-    current_value: Valuation,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberType,
-    charges: ProductCharges,
-    current_tax_position: Option<CurrentProductTaxPosition>,
-    recommendations: ExistingProductRecommendations,
+    account_type: CanBeJointlyOwnedAccountType
 }
 
 impl TryFrom<ExistingJointlyOwnedProductDto> for ExistingJointlyOwnedProduct {
     type Error = String;
 
     fn try_from(dto: ExistingJointlyOwnedProductDto) -> Result<Self, Self::Error> {
-        Ok(ExistingJointlyOwnedProduct {
-            ownership: dto.ownership.try_into()?,
-            provider: dto.provider.try_into()?,
-            platform_account_number: dto.platform_account_number.try_into()?,
+        Ok(Self {
+            id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
+            platform_or_account_number: dto.platform_or_account_number.map(|dto|dto.try_into()).transpose()?,
             account_or_reference_number: dto.account_or_reference_number.try_into()?,
-            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            tax_wrapper_type: dto.tax_wrapper_type.try_into()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
-            current_value: dto.current_value.try_into()?,
-            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
-            charges: dto.charges.try_into()?,
-            current_tax_position: dto.current_tax_position.map(|dto| dto.try_into()).transpose()?,
-            recommendations: dto.recommendations.try_into()?,
+            account_type: dto.account_type.try_into()?
         })
     }
 }
 
+impl ExistingJointlyOwnedProduct {
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match &self.account_type {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+        }
+    }
+
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        self.account_type.to_string()
+    }
+
+    /// Returns the tax wrapper type as a full name/brackets string.
+    pub fn tax_wrapper_type_as_full_name_brackets_string_short_name(&self) -> String {
+        self.account_type.account_type_as_full_name_brackets_string_short_name()
+    }
+
+    /// Returns the platform or account number.
+    /// The platform or account number is a higher level account number within which numerous account or reference numbers can be 
+    /// held which are unique identifiers to the individual tax wrappers themselves.
+    pub fn platform_account_number(&self) -> &Option<PlatformAccountNumberType> {
+        &self.platform_or_account_number
+    }
+
+    /// Returns the platform or account number as a string.
+    pub fn platform_account_number_as_string(&self) -> Option<String> {
+        self.platform_or_account_number.as_ref().map(|platform_number| platform_number.to_string())
+    }
+
+    /// Returns the account or reference number as a string.
+    /// The unique identifier for each tax wrapper held within a platform / wrap account.
+    /// For new accounts where an account or reference number is not provided a temporary uuid is used in place.
+    pub fn account_or_reference_number(&self) -> &AccountOrReferenceNumberType {
+        &self.account_or_reference_number
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_as_string(&self) -> String {
+        self.account_or_reference_number.to_string()
+    }
+
+    /// Returns a reference to the provider.
+    pub fn provider(&self) -> &Provider {
+        match &self.account_type {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+        }
+    }
+
+    /// Returns a reference to the retention recommendation.
+    pub fn product_retention(&self) -> &ProductRetention {
+        match &self.account_type {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(gia) => &gia.recommendations.product_retention,
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+        }
+    }
+
+    pub fn account_type(&self) -> &CanBeJointlyOwnedAccountType {
+        &self.account_type
+    }
+
+}
+
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct ExistingSingleOwnedProduct {
-    provider: Provider,
-    platform_account_number: PlatformAccountNumberType,
+    id: Uuid,
+    platform_or_account_number: Option<PlatformAccountNumberType>,
     account_or_reference_number: AccountOrReferenceNumberType,
-    optional_description: Option<ConstrainedString200>,
-    tax_wrapper_type: TaxWrapperType,
-    current_investment_strategy: CurrentInvestmentStrategy,
-    current_value: Valuation,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberType,
-    charges: ProductCharges,
-    current_tax_position: Option<CurrentProductTaxPosition>,
-    recommendations: ExistingProductRecommendations,
+    account_type: AccountType
 }
 
 impl TryFrom<ExistingSingleOwnedProductDto> for ExistingSingleOwnedProduct {
     type Error = String;
 
     fn try_from(dto: ExistingSingleOwnedProductDto) -> Result<Self, Self::Error> {
-        Ok(ExistingSingleOwnedProduct {
-            provider: dto.provider.try_into()?,
-            platform_account_number: dto.platform_account_number.try_into()?,
+        Ok(Self {
+            id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
+            platform_or_account_number: dto.platform_or_account_number.map(|dto|dto.try_into()).transpose()?,
             account_or_reference_number: dto.account_or_reference_number.try_into()?,
-            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            tax_wrapper_type: dto.tax_wrapper_type.try_into()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
-            current_value: dto.current_value.try_into()?,
-            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
-            charges: dto.charges.try_into()?,
-            current_tax_position: dto.current_tax_position.map(|dto| dto.try_into()).transpose()?,
-            recommendations: dto.recommendations.try_into()?,
+            account_type: dto.account_type.try_into()?
+
         })
     }
 }
 
+impl ExistingSingleOwnedProduct {
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match &self.account_type {
+            AccountType::IsaStocksAndShares(iss) => iss.provider.0.to_string(),
+            AccountType::SelfInvestedPersonalPension(sipp) => sipp.provider.0.to_string(),
+            AccountType::PersonalPension(pp) => pp.provider.0.to_string(),
+            AccountType::JuniorIsaStocksAndShares(jisa) => jisa.provider.0.to_string(),
+            AccountType::CashIsa(ci) => ci.provider.0.to_string(),
+            AccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+            AccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+            AccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+        }
+    }
+
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        self.account_type.to_string()
+    }
+
+    /// Returns the tax wrapper type as a full name/brackets string.
+    pub fn tax_wrapper_type_as_full_name_brackets_string_short_name(&self) -> String {
+        self.account_type.account_type_as_full_name_brackets_string_short_name()  
+    }
+
+    /// Returns the platform or account number.
+    /// The platform or account number is a higher level account number within which numerous account or reference numbers can be 
+    /// held which are unique identifiers to the individual tax wrappers themselves.
+    pub fn platform_account_number(&self) -> &Option<PlatformAccountNumberType> {
+        &self.platform_or_account_number
+    }
+
+    /// Returns the platform or account number as a string.
+    pub fn platform_account_number_as_string(&self) -> Option<String> {
+        self.platform_or_account_number.as_ref().map(|number|number.to_string())
+    }
+
+    /// Returns the account or reference number as a string.
+    /// The unique identifier for each tax wrapper held within a platform / wrap account.
+    /// For new accounts where an account or reference number is not provided a temporary uuid is used in place.
+    pub fn account_or_reference_number(&self) -> &AccountOrReferenceNumberType {
+        &self.account_or_reference_number
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_as_string(&self) -> String {
+        self.account_or_reference_number.to_string()
+    }
+
+    /// Returns a reference to the provider.
+    pub fn provider(&self) -> &Provider {
+        match &self.account_type {
+            AccountType::IsaStocksAndShares(iss) => &iss.provider,
+            AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+            AccountType::PersonalPension(pp) => &pp.provider,
+            AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+            AccountType::CashIsa(ci) => &ci.provider,
+            AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+            AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+            AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+        }
+    }
+
+    /// Returns a reference to the retention recommendation.
+    pub fn product_retention(&self) -> &ProductRetention {
+        match &self.account_type {
+            AccountType::IsaStocksAndShares(iss) => &iss.recommendations.product_retention,
+            AccountType::SelfInvestedPersonalPension(sipp) => &sipp.recommendations.product_retention,
+            AccountType::PersonalPension(pp) => &pp.recommendations.product_retention,
+            AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.recommendations.product_retention,
+            AccountType::CashIsa(ci) => &ci.recommendations.product_retention,
+            AccountType::GeneralInvestmentAccount(gia) => &gia.recommendations.product_retention,
+            AccountType::OnshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+            AccountType::OffshoreInvestmentBond(oib) => &oib.recommendations.product_retention,
+        }
+    }
+    
+}
+
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct NewSingleOwnedProduct {
-    provider: Provider,
-    platform_account_number: PlatformAccountNumberType,
-    account_or_reference_number: AccountOrReferenceNumberType,
-    optional_description: ConstrainedString200,
-    tax_wrapper_type: TaxWrapperType,
-    linked_cash_or_fee_payment_wrapper: PlatformOrAccountReferenceNumberType,
-    charges: ProductCharges,
-    recommendations: NewProductRecommendations,
+    id: Uuid,
+    platform_or_account_number: Option<PlatformAccountNumberType>,
+    account_or_reference_number: Option<AccountOrReferenceNumberType>,
+    account_type: AccountType,
+    recommendations: NewProductRecommendations
 }
 
 impl TryFrom<NewSingleOwnedProductDto> for NewSingleOwnedProduct {
     type Error = String;
 
     fn try_from(dto: NewSingleOwnedProductDto) -> Result<Self, Self::Error> {
-        Ok(NewSingleOwnedProduct {
-            provider: dto.provider.try_into()?,
-            platform_account_number: dto.platform_account_number.try_into()?,
-            account_or_reference_number: dto.account_or_reference_number.try_into()?,
-            optional_description: dto.optional_description.try_into()?,
-            tax_wrapper_type: dto.tax_wrapper_type.try_into()?,
-            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
-            charges: dto.charges.try_into()?,
-            recommendations: dto.recommendations.try_into()?,
+        Ok(Self {
+            id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
+            platform_or_account_number: dto.platform_or_account_number.map(|dto| dto.try_into()).transpose()?,
+            account_or_reference_number: dto.account_or_reference_number.map(|dto|dto.try_into()).transpose()?,
+            account_type: dto.account_type.try_into()?,
+            recommendations: dto.recommendations.try_into()?
         })
     }
 }
 
+impl NewSingleOwnedProduct {
+    /// Returns the provider as a string.
+    pub fn provider_as_string(&self) -> String {
+        match &self.account_type {
+            AccountType::IsaStocksAndShares(iss) => iss.provider.0.to_string(),
+            AccountType::SelfInvestedPersonalPension(sipp) => sipp.provider.0.to_string(),
+            AccountType::PersonalPension(pp) => pp.provider.0.to_string(),
+            AccountType::JuniorIsaStocksAndShares(jisa) => jisa.provider.0.to_string(),
+            AccountType::CashIsa(ci) => ci.provider.0.to_string(),
+            AccountType::GeneralInvestmentAccount(gia) => gia.provider.0.to_string(),
+            AccountType::OnshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+            AccountType::OffshoreInvestmentBond(oib) => oib.provider.0.to_string(),
+        }
+    }
+
+    /// Returns the tax wrapper type as a string.
+    pub fn tax_wrapper_type_as_string(&self) -> String {
+        self.account_type.to_string()
+    }
+
+    /// Returns the tax wrapper type as a full name/brackets string.
+    pub fn tax_wrapper_type_as_full_name_brackets_string_short_name(&self) -> String {
+        self.account_type.account_type_as_full_name_brackets_string_short_name()
+    }
+
+    /// Returns the platform or account number.
+    /// The platform or account number is a higher level account number within which numerous account or reference numbers can be 
+    /// held which are unique identifiers to the individual tax wrappers themselves.
+    pub fn platform_account_number(&self) -> &Option<PlatformAccountNumberType> {
+        &self.platform_or_account_number
+    }
+
+    /// Returns the account or reference number as a string.
+    /// The unique identifier for each tax wrapper held within a platform / wrap account.
+    /// For new accounts where an account or reference number is not provided a temporary uuid is used in place.
+    pub fn account_or_reference_number(&self) -> &Option<AccountOrReferenceNumberType> {
+        &self.account_or_reference_number
+    }
+
+    /// Returns the account or reference number as a string.
+    pub fn account_or_reference_number_or_id_as_string(&self) -> String {
+        match &self.account_or_reference_number {
+            Some(account_number) => account_number.to_string(),
+            None => self.id.to_string()
+        }
+    }
+
+    /// Returns a reference to the provider.
+    pub fn provider(&self) -> &Provider {
+        match &self.account_type {
+            AccountType::IsaStocksAndShares(iss) => &iss.provider,
+            AccountType::SelfInvestedPersonalPension(sipp) => &sipp.provider,
+            AccountType::PersonalPension(pp) => &pp.provider,
+            AccountType::JuniorIsaStocksAndShares(jisa) => &jisa.provider,
+            AccountType::CashIsa(ci) => &ci.provider,
+            AccountType::GeneralInvestmentAccount(gia) => &gia.provider,
+            AccountType::OnshoreInvestmentBond(oib) => &oib.provider,
+            AccountType::OffshoreInvestmentBond(oib) => &oib.provider,
+        }
+    }
+}
+
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum CanBeJointlyOwnedAccountType {
+    GeneralInvestmentAccount(GeneralInvestmentAccount),
+    OnshoreInvestmentBond(OnshoreInvestmentBond),
+    OffshoreInvestmentBond(OffshoreInvestmentBond),
+}
+
+impl TryFrom<CanBeJointlyOwnedAccountTypeDto> for CanBeJointlyOwnedAccountType {
+    type Error = String;
+
+    fn try_from(dto: CanBeJointlyOwnedAccountTypeDto) -> Result<Self, Self::Error> {
+        match dto {
+            CanBeJointlyOwnedAccountTypeDto::GeneralInvestmentAccount(dto) => Ok(Self::GeneralInvestmentAccount(dto.try_into()?)),
+            CanBeJointlyOwnedAccountTypeDto::OnshoreInvestmentBond(dto) => Ok(Self::OnshoreInvestmentBond(dto.try_into()?)),
+            CanBeJointlyOwnedAccountTypeDto::OffshoreInvestmentBond(dto) => Ok(Self::OffshoreInvestmentBond(dto.try_into()?)),
+        }
+    }
+}
+
+// Implement Display for CanBeJointlyOwnedAccountTypes.
+impl fmt::Display for CanBeJointlyOwnedAccountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let type_str = match self {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(_) => "General Investment Account",
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(_) => "Onshore Investment Bond",
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(_) => "Offshore Investment Bond",
+        };
+        write!(f, "{}", type_str)
+    }
+}
+
+impl CanBeJointlyOwnedAccountType {
+    pub fn account_type_as_string_short_name(&self) -> String {
+        match self {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(_) => "GIA".to_string(),
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(_) => "Onshore Investment Bond".to_string(),
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(_) => "Offshore Investment Bond".to_string(),
+        }
+    }
+
+    pub fn account_type_as_full_name_brackets_string_short_name(&self) -> String {
+        match self {
+            CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(_) => "General Investment Account (GIA)".to_string(),
+            CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(_) => "Onshore Investment Bond".to_string(),
+            CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(_) => "Offshore Investment Bond".to_string(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum AccountType {
+    IsaStocksAndShares(IsaStocksAndShares),
+    SelfInvestedPersonalPension(SelfInvestedPersonalPension),
+    PersonalPension(PersonalPension),
+    JuniorIsaStocksAndShares(JuniorIsaStocksAndShares),
+    CashIsa(CashIsa),
+    GeneralInvestmentAccount(GeneralInvestmentAccount),
+    OnshoreInvestmentBond(OnshoreInvestmentBond),
+    OffshoreInvestmentBond(OffshoreInvestmentBond)
+}
+
+impl TryFrom<AccountTypeDto> for AccountType {
+    type Error = String;
+
+    fn try_from(dto: AccountTypeDto) -> Result<Self, Self::Error> {
+        match dto {
+            AccountTypeDto::IsaStocksAndShares(dto) => Ok(Self::IsaStocksAndShares(dto.try_into()?)),
+            AccountTypeDto::SelfInvestedPersonalPension(dto) => Ok(Self::SelfInvestedPersonalPension(dto.try_into()?)),
+            AccountTypeDto::PersonalPension(dto) => Ok(Self::PersonalPension(dto.try_into()?)),
+            AccountTypeDto::JuniorIsaStocksAndShares(dto) => Ok(Self::JuniorIsaStocksAndShares(dto.try_into()?)),
+            AccountTypeDto::CashIsa(dto) => Ok(Self::CashIsa(dto.try_into()?)),
+            AccountTypeDto::GeneralInvestmentAccount(dto) => Ok(Self::GeneralInvestmentAccount(dto.try_into()?)),
+            AccountTypeDto::OnshoreInvestmentBond(dto) => Ok(Self::OnshoreInvestmentBond(dto.try_into()?)),
+            AccountTypeDto::OffshoreInvestmentBond(dto) => Ok(Self::OffshoreInvestmentBond(dto.try_into()?)),
+        }
+    }
+}
+
+// Implement Display for AccountType.
+impl fmt::Display for AccountType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let type_str = match self {
+            AccountType::IsaStocksAndShares(_) => "ISA Stocks and Shares",
+            AccountType::SelfInvestedPersonalPension(_) => "Self Invested Personal Pension",
+            AccountType::PersonalPension(_) => "Personal Pension",
+            AccountType::JuniorIsaStocksAndShares(_) => "Junior ISA Stocks and Shares",
+            AccountType::CashIsa(_) => "Cash ISA",
+            AccountType::GeneralInvestmentAccount(_) => "General Investment Account",
+            AccountType::OffshoreInvestmentBond(_) => "Offshore Investment Bond",
+            AccountType::OnshoreInvestmentBond(_) => "Onshore Investment Bond"
+        };
+        write!(f, "{}", type_str)
+    }
+}
+
+impl AccountType {
+    pub fn account_type_as_string_short_name(&self) -> String {
+        match self {
+            AccountType::IsaStocksAndShares(_) => "ISA".to_string(),
+            AccountType::SelfInvestedPersonalPension(_) => "SIPP".to_string(),
+            AccountType::PersonalPension(_) => "Personal Pension".to_string(),
+            AccountType::JuniorIsaStocksAndShares(_) => "JISA".to_string(),
+            AccountType::CashIsa(_) => "Cash ISA".to_string(),
+            AccountType::GeneralInvestmentAccount(_) => "GIA".to_string(),
+            AccountType::OffshoreInvestmentBond(_) => "Offshore Bond".to_string(),
+            AccountType::OnshoreInvestmentBond(_) => "Onshore Bond".to_string()
+        }
+    }
+
+    pub fn account_type_as_full_name_brackets_string_short_name(&self) -> String {
+        match self {
+            AccountType::IsaStocksAndShares(_) => "ISA Stocks and Shares (ISA)".to_string(),
+            AccountType::SelfInvestedPersonalPension(_) => "Self Invested Personal Pension (SIPP)".to_string(),
+            AccountType::PersonalPension(_) => "Personal Pension".to_string(),
+            AccountType::JuniorIsaStocksAndShares(_) => "Junior ISA Stocks and Shares (JISA)".to_string(),
+            AccountType::CashIsa(_) => "Cash ISA".to_string(),
+            AccountType::GeneralInvestmentAccount(_) => "General Investment Account (GIA)".to_string(),
+            AccountType::OffshoreInvestmentBond(_) => "Offshore Investment Bond".to_string(),
+            AccountType::OnshoreInvestmentBond(_) => "Onshore Investment Bond".to_string()
+        }
+    }
+
+    
+}
+
+/// Allow converting a string into an AccountType by matching the short names.
+/// (Note: this requires that each inner type can be instantiated with Default.)
+impl FromStr for AccountType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ISA" => Ok(AccountType::IsaStocksAndShares(Default::default())),
+            "SIPP" => Ok(AccountType::SelfInvestedPersonalPension(Default::default())),
+            "Personal Pension" => Ok(AccountType::PersonalPension(Default::default())),
+            "JISA" => Ok(AccountType::JuniorIsaStocksAndShares(Default::default())),
+            "Cash ISA" => Ok(AccountType::CashIsa(Default::default())),
+            "GIA" => Ok(AccountType::GeneralInvestmentAccount(Default::default())),
+            "Onshore Bond" => Ok(AccountType::OnshoreInvestmentBond(Default::default())),
+            "Offshore Bond" => Ok(AccountType::OffshoreInvestmentBond(Default::default())),
+            _ => Err(format!("Unknown account type: {}", s)),
+        }
+    }
+}
+
+/// Also allow TryFrom<String> for convenience.
+impl TryFrom<String> for AccountType {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.parse::<AccountType>()
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct IsaStocksAndShares {
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<IsaStocksAndSharesDto> for IsaStocksAndShares {
+    type Error = String;
+
+    fn try_from(dto: IsaStocksAndSharesDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneralInvestmentAccount {
+    ownership: Ownership,
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    current_tax_position: CapitalGainsPosition,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<GeneralInvestmentAccountDto> for GeneralInvestmentAccount {
+    type Error = String;
+
+    fn try_from(dto: GeneralInvestmentAccountDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ownership: dto.ownership.try_into()?,
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            current_tax_position: dto.current_tax_position.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OnshoreInvestmentBond {
+    ownership: Ownership,
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    current_tax_position: ChargeableGainsPosition,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<OnshoreInvestmentBondDto> for OnshoreInvestmentBond {
+    type Error = String;
+
+    fn try_from(dto: OnshoreInvestmentBondDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ownership: dto.ownership.try_into()?,
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            current_tax_position: dto.current_tax_position.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OffshoreInvestmentBond {
+    ownership: Ownership,
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    current_tax_position: ChargeableGainsPosition,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<OffshoreInvestmentBondDto> for OffshoreInvestmentBond {
+    type Error = String;
+
+    fn try_from(dto: OffshoreInvestmentBondDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            ownership: dto.ownership.try_into()?,
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            current_tax_position: dto.current_tax_position.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SelfInvestedPersonalPension {
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<SelfInvestedPersonalPensionDto> for SelfInvestedPersonalPension {
+    type Error = String;
+
+    fn try_from(dto: SelfInvestedPersonalPensionDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonalPension {
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<PersonalPensionDto> for PersonalPension {
+    type Error = String;
+
+    fn try_from(dto: PersonalPensionDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct JuniorIsaStocksAndShares {
+    provider: Provider,
+    optional_description: Option<ConstrainedString200>,
+    current_investment_strategy: InvestmentStrategy,
+    current_value: Valuation,
+    linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberType,
+    charges: ProductCharges,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<JuniorIsaStocksAndSharesDto> for JuniorIsaStocksAndShares {
+    type Error = String;
+
+    fn try_from(dto: JuniorIsaStocksAndSharesDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
+            charges: dto.charges.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CashIsa {
+    provider: Provider,
+    account_number: BankAccountNumber,
+    sort_code: BankSortCode,
+    optional_description: Option<ConstrainedString200>,
+    current_value: Valuation,
+    recommendations: ExistingProductRecommendations,
+}
+
+impl TryFrom<CashIsaDto> for CashIsa {
+    type Error = String;
+
+    fn try_from(dto: CashIsaDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            provider: dto.provider.try_into()?,
+            optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
+            account_number: dto.account_number.try_into()?,
+            sort_code: dto.sort_code.try_into()?,
+            current_value: dto.current_value.try_into()?,
+            recommendations: dto.recommendations.try_into()?
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Ownership {
     client_first_name: NameString,
@@ -403,7 +1168,7 @@ impl TryFrom<OwnershipDto> for Ownership {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Provider(Providers);
 
@@ -420,6 +1185,8 @@ impl TryFrom<ProviderDto> for Provider {
             ProvidersDto::Utmost => Ok(Provider(Providers::Utmost)),
             ProvidersDto::ReAssure => Ok(Provider(Providers::ReAssure)),
             ProvidersDto::Quilter => Ok(Provider(Providers::Quilter)),
+            ProvidersDto::Fidelity => Ok(Provider(Providers::Fidelity)),
+            ProvidersDto::JamesHay => Ok(Provider(Providers::JamesHay)),
         }
     }
 }
@@ -430,15 +1197,18 @@ impl Provider {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum Providers {
     Abrdn,
+    #[default]
     Transact,
     Utmost,
     ReAssure,
     Quilter,
+    Fidelity,
+    JamesHay
 }
 
 impl fmt::Display for Providers {
@@ -449,157 +1219,29 @@ impl fmt::Display for Providers {
             Providers::Utmost => "Utmost",
             Providers::ReAssure => "ReAssure",
             Providers::Quilter => "Quilter",
+            Providers::Fidelity => "Fidelity",
+            Providers::JamesHay => "James Hay"
         };
         write!(f, "{}", provider_str)
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-pub enum TaxWrapperType {
-    IsaStocksAndShares,
-    GeneralInvestmentAccount,
-    OnshoreInvestmentBond,
-    OffshoreInvestmentBond,
-    SelfInvestedPersonalPension,
-    PersonalPension,
-    JuniorIsaStocksAndShares
-}
-
-impl TryFrom<TaxWrapperTypeDto> for TaxWrapperType {
-    type Error = String;
-
-    fn try_from(dto: TaxWrapperTypeDto) -> Result<Self, Self::Error> {
-        match dto {
-            TaxWrapperTypeDto::GeneralInvestmentAccount => Ok(Self::GeneralInvestmentAccount),
-            TaxWrapperTypeDto::IsaStocksAndShares => Ok(Self::IsaStocksAndShares),
-            TaxWrapperTypeDto::OnshoreInvestmentBond => Ok(Self::OnshoreInvestmentBond),
-            TaxWrapperTypeDto::OffshoreInvestmentBond => Ok(Self::OffshoreInvestmentBond),
-            TaxWrapperTypeDto::SelfInvestedPersonalPension => Ok(Self::SelfInvestedPersonalPension),
-            TaxWrapperTypeDto::PersonalPension => Ok(Self::PersonalPension),
-            TaxWrapperTypeDto::JuniorIsaStocksAndShares => Ok(Self::JuniorIsaStocksAndShares)
+impl Providers {
+    /// Returns an alternative name for the provider.
+    pub fn alt_name(&self) -> &str {
+        match self {
+            Providers::Abrdn => "abrdn Wrap", // Special case for abrdn
+            Providers::Transact => "Transact",
+            Providers::Utmost => "Utmost",
+            Providers::ReAssure => "ReAssure",
+            Providers::Quilter => "Quilter",
+            Providers::Fidelity => "Fidelity",
+            Providers::JamesHay => "James Hay"
         }
     }
 }
 
-// Implement Display for TaxWrapperType.
-impl fmt::Display for TaxWrapperType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let type_str = match self {
-            TaxWrapperType::IsaStocksAndShares => "ISA Stocks and Shares",
-            TaxWrapperType::GeneralInvestmentAccount => "General Investment Account",
-            TaxWrapperType::OnshoreInvestmentBond => "Onshore Investment Bond",
-            TaxWrapperType::OffshoreInvestmentBond => "Offshore Investment Bond",
-            TaxWrapperType::SelfInvestedPersonalPension => "Self Invested Personal Pension",
-            TaxWrapperType::PersonalPension => "Personal Pension",
-            TaxWrapperType::JuniorIsaStocksAndShares => "Junior ISA Stocks and Shares",
-        };
-        write!(f, "{}", type_str)
-    }
-}
-
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum CurrentInvestmentStrategy {
-    GCWMInvestmentStrategy(GCWMInvestmentStrategies),
-    OtherInvestmentStrategy(OtherInvestmentStrategy)
-}
-
-impl TryFrom<CurrentInvestmentStrategyDto> for CurrentInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: CurrentInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        match dto {
-            CurrentInvestmentStrategyDto::GCWMInvestmentStrategy(gcwm_investment_strategy_dto) => {
-                match gcwm_investment_strategy_dto {
-                    GCWMInvestmentStrategiesDto::PrimeModerate(current_investment_strategy_month_year) => {
-                        match current_investment_strategy_month_year {
-                            CurrentInvestmentStrategyMonthYearDto::Aug24 => Ok(
-                                CurrentInvestmentStrategy::GCWMInvestmentStrategy(
-                                    GCWMInvestmentStrategies::PrimeModerate(
-                                        CurrentInvestmentStrategyMonthYear::Aug24
-                                    )
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-            CurrentInvestmentStrategyDto::OtherInvestmentStrategy(other_investment_strategy_dto) => {
-                Ok(CurrentInvestmentStrategy::OtherInvestmentStrategy(
-                    other_investment_strategy_dto.try_into()?
-                ))
-            }
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum GCWMInvestmentStrategies {
-    PrimeModerate(CurrentInvestmentStrategyMonthYear)
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-pub enum CurrentInvestmentStrategyMonthYear {
-    Aug24
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct OtherInvestmentStrategy {
-    description: ConstrainedString200,
-    fund_allocation: Option<FundHolding>
-}
-
-impl TryFrom<OtherInvestmentStrategyDto> for OtherInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: OtherInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        let validated_fund_allocation = match dto.fund_allocation {
-            Some(unvalidated_fund_allocation) => {
-                let validated_fund_holding: FundHolding = unvalidated_fund_allocation.try_into()?;
-                Some(validated_fund_holding)
-            }
-            None => None
-        };
-
-        Ok(Self{
-            description: dto.description.try_into()?,
-            fund_allocation: validated_fund_allocation
-        })
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct FundHolding {
-    fund_name: ConstrainedString200,
-    isin: Option<ISIN>,
-    sedol: Option<Sedol>,
-    value: Option<ConstrainedMoneyAmountLarge>,
-    percentage_of_portfolio: Option<Percentage>
-}
-
-impl TryFrom<FundHoldingDto> for FundHolding {
-    type Error = String;
-
-    fn try_from(dto: FundHoldingDto) -> Result<Self, Self::Error> {
-        Ok(Self {
-            fund_name: dto.fund_name.try_into()?,
-            isin: if dto.isin.is_some() { Some(dto.isin.unwrap().try_into()?) } else { None },
-            sedol: if dto.sedol.is_some() { Some(dto.sedol.unwrap().try_into()?) } else { None },
-            value: if dto.value.is_some() { Some(dto.value.unwrap().try_into()?) } else { None },
-            percentage_of_portfolio: if dto.percentage_of_portfolio.is_some() { Some(dto.percentage_of_portfolio.unwrap().try_into()?) } else { None },
-        })
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Valuation {
     value: ConstrainedMoneyAmountLarge,
@@ -617,13 +1259,13 @@ impl TryFrom<ValuationDto> for Valuation {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductCharges {
     ongoing_advice_charge: Percentage,
     platform_charge: Percentage,
-    ongoing_fund_charge: Percentage,
-    other_charges: OtherCharge
+    ongoing_fund_charge: Option<Percentage>,
+    other_charges: Option<OtherCharge>
 }
 
 impl TryFrom<ProductChargesDto> for ProductCharges {
@@ -633,8 +1275,8 @@ impl TryFrom<ProductChargesDto> for ProductCharges {
         Ok(Self {
             ongoing_advice_charge: dto.ongoing_advice_charge.try_into()?,
             platform_charge: dto.platform_charge.try_into()?,
-            ongoing_fund_charge: dto.ongoing_fund_charge.try_into()?,
-            other_charges: dto.other_charges.try_into()?
+            ongoing_fund_charge: dto.ongoing_fund_charge.map(|dto| dto.try_into()).transpose()?,
+            other_charges: dto.other_charges.map(|dto|dto.try_into()).transpose()?
         })
     }
 }
@@ -655,14 +1297,14 @@ impl TryFrom<CurrentProductTaxPositionDto> for CurrentProductTaxPosition {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ExistingProductRecommendations {
-    recommended_product_charges: ProductCharges,
+    //recommended_product_charges: ProductCharges,
     product_retention: ProductRetention,
-    recommended_investment_strategy: InvestableInvestmentStrategy,
-    linked_objectives: Vec<Uuid>,
-    recommendation_actions: Vec<RecommendedAction>
+    //recommended_investment_strategy: InvestableInvestmentStrategy,
+    //linked_objectives: Vec<Uuid>,
+    //recommendation_actions: Vec<RecommendedAction>
 }
 
 impl TryFrom<ExistingProductRecommendationsDto> for ExistingProductRecommendations {
@@ -670,11 +1312,11 @@ impl TryFrom<ExistingProductRecommendationsDto> for ExistingProductRecommendatio
 
     fn try_from(dto: ExistingProductRecommendationsDto) -> Result<Self, Self::Error> {
         Ok(Self {
-            recommended_product_charges: dto.recommended_product_charges.try_into()?,
+            //recommended_product_charges: dto.recommended_product_charges.try_into()?,
             product_retention: dto.product_retention.try_into()?,
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
-            linked_objectives: dto.linked_objectives,
-            recommendation_actions: dto.recommendation_actions.iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?
+            //recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            //linked_objectives: dto.linked_objectives,
+            //recommendation_actions: dto.recommendation_actions.iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?
         })
     }
 }
@@ -682,8 +1324,9 @@ impl TryFrom<ExistingProductRecommendationsDto> for ExistingProductRecommendatio
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NewProductRecommendations {
+    rationale: ConstrainedString1000,
     recommended_product_charges: ProductCharges,
-    recommended_investment_strategy: InvestableInvestmentStrategy,
+    recommended_investment_strategy: InvestmentStrategy,
     linked_objectives: Vec<Uuid>,
     recommendation_actions: Vec<RecommendedAction>
 }
@@ -693,6 +1336,7 @@ impl TryFrom<NewProductRecommendationsDto> for NewProductRecommendations {
 
     fn try_from(dto: NewProductRecommendationsDto) -> Result<Self, Self::Error> {
         Ok(Self {
+            rationale: dto.rationale.try_into()?,
             recommended_product_charges: dto.recommended_product_charges.try_into()?,
             recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
             linked_objectives: dto.linked_objectives,
@@ -737,7 +1381,7 @@ impl TryFrom<OtherChargeDto> for OtherCharge {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendedInvestmentAndRiskStrategy {
-    recommended_investment_strategy: InvestableInvestmentStrategy,
+    recommended_investment_strategy: InvestmentStrategy,
     risk_level: RiskProfile
 }
 
@@ -759,6 +1403,17 @@ pub enum CapitalGainsPosition {
     CapitalGainsTaxAvoidLiability(CapitalGainsTaxAvoidLiability),
     CapitalGainsTaxNoLiability(CapitalGainsTaxNoLiability),
     CapitalGainsTaxIncurLiability(CapitalGainsTaxIncurLiability)
+}
+
+impl Default for CapitalGainsPosition {
+    fn default() -> Self {
+        Self::CapitalGainsTaxNoLiability(
+            CapitalGainsTaxNoLiability{ 
+                unrealised_gains: ConstrainedMoneyAmountMedium::default(),
+                capital_gains_tax_discussion: ConstrainedString1000::default()
+            }
+        )
+    }
 }
 
 impl TryFrom<CapitalGainsPositionDto> for CapitalGainsPosition {
@@ -788,6 +1443,17 @@ pub enum ChargeableGainsPosition {
     ChargeableGainsTaxIncurLiability(ChargeableGainsTaxIncurLiability)
 }
 
+impl Default for ChargeableGainsPosition {
+    fn default() -> Self {
+        Self::ChargeableGainsTaxNoLiability(
+            ChargeableGainsTaxNoLiability{ 
+                unrealised_gains: ConstrainedMoneyAmountMedium::default(),
+                chargeable_gains_tax_discussion: ConstrainedString1000::default()
+            }
+        )
+    }
+}
+
 impl TryFrom<ChargeableGainsPositionDto> for ChargeableGainsPosition {
     type Error = String;
 
@@ -813,7 +1479,12 @@ pub enum ProductRetention {
     Retain(Retain),
     Replace(Replace), 
     FullyEncash(FullyEncash),
-    PartialTransfer(PartialTransfer)
+}
+
+impl Default for ProductRetention {
+    fn default() -> Self {
+        Self::FullyEncash(FullyEncash { rationale: ConstrainedString1000::default() })
+    }
 }
 
 impl TryFrom<ProductRetentionDto> for ProductRetention {
@@ -824,7 +1495,7 @@ impl TryFrom<ProductRetentionDto> for ProductRetention {
             ProductRetentionDto::Retain(retain_dto) => Ok(Self::Retain(retain_dto.try_into()?)),
             ProductRetentionDto::Replace(replace_dto) => Ok(Self::Replace(replace_dto.try_into()?)),
             ProductRetentionDto::FullyEncash(fully_encash_dto) => Ok(Self::FullyEncash(fully_encash_dto.try_into()?)),
-            ProductRetentionDto::PartialTransfer(partial_transfer_dto) => Ok(Self::PartialTransfer(partial_transfer_dto.try_into()?)),
+            //ProductRetentionDto::PartialTransfer(partial_transfer_dto) => Ok(Self::PartialTransfer(partial_transfer_dto.try_into()?)),
         }
     }
 }
@@ -851,11 +1522,25 @@ impl TryFrom<RecommendedActionDto> for RecommendedAction {
             RecommendedActionDto::RegularContribution(regular_contribution_dto) => Ok(Self::RegularContribution(regular_contribution_dto.try_into()?)),
             RecommendedActionDto::RegularWithdrawal(regular_withdrawal_dto) => Ok(Self::RegularWithdrawal(regular_withdrawal_dto.try_into()?)),
             RecommendedActionDto::StopWithdrawal(stop_withdrawal_dto) => Ok(Self::StopWithdrawal(stop_withdrawal_dto.try_into()?)),
-            RecommendedActionDto::Transfer(transfer_dto) => Ok(Self::Transfer(transfer_dto.try_into()?)),
-            RecommendedActionDto::StopWithdrawal(stop_withdrawal_dto) => Ok(Self::StopWithdrawal(stop_withdrawal_dto.try_into()?))
+            RecommendedActionDto::Transfer(transfer_dto) => Ok(Self::Transfer(transfer_dto.try_into()?))
         }
     }
 }
+
+impl RecommendedAction {
+    /// Returns a descriptive string for the recommended action.
+    pub fn description(&self) -> &'static str {
+        match self {
+            RecommendedAction::SingleWithdrawal(_) => "Single Withdrawal",
+            RecommendedAction::SingleContribution(_) => "Single Contribution",
+            RecommendedAction::RegularContribution(_) => "Regular Contribution",
+            RecommendedAction::RegularWithdrawal(_) => "Regular Withdrawal",
+            RecommendedAction::Transfer(_) => "Transfer",
+            RecommendedAction::StopWithdrawal(_) => "Stop Withdrawal",
+        }
+    }
+}
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1038,6 +1723,10 @@ impl TryFrom<ChargeableGainsTaxIncurLiabilityDto> for ChargeableGainsTaxIncurLia
 #[serde(rename_all = "camelCase")]
 pub struct Retain {
     rationale: ConstrainedString1000,
+    recommended_product_charges: ProductCharges,
+    recommended_investment_strategy: RealignOrRebalance,
+    linked_objectives: Vec<Uuid>,
+    recommendation_actions: Option<Vec<RecommendedAction>>
 }
 
 impl TryFrom<RetainDto> for Retain {
@@ -1045,45 +1734,378 @@ impl TryFrom<RetainDto> for Retain {
 
     fn try_from(dto: RetainDto) -> Result<Self, Self::Error> {
         Ok(Self {
-            rationale: dto.rationale.try_into()?
+            rationale: dto.rationale.try_into()?,
+            recommended_product_charges: dto.recommended_product_charges.try_into()?,
+            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            linked_objectives: dto
+                .linked_objectives
+                .iter()
+                .map(|uuid_str| Uuid::parse_str(uuid_str.as_str()))
+                .collect::<Result<Vec<_>, _>>() 
+                .map_err(|e| e.to_string())?,
+            recommendation_actions: dto
+                .recommendation_actions
+                .map(|actions| {
+                    actions
+                        .into_iter()
+                        .map(|action_dto| action_dto.try_into())
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .transpose()?,
+        })
+    }
+}
+
+impl Retain {
+
+    pub fn recommendation_actions(&self) -> &Option<Vec<RecommendedAction>> {
+        &self.recommendation_actions
+    }
+
+    /// Returns a HashMap grouping the recommended actions by their type.
+    ///
+    /// The key is a string (derived from the `description()` method of `RecommendedAction`),
+    /// and the value is a vector of recommended actions with that description.
+    pub fn actions_by_action_type(&self) -> HashMap<String, Vec<RecommendedAction>> {
+        let mut groups: HashMap<String, Vec<RecommendedAction>> = HashMap::new();
+        if let Some(actions) = &self.recommendation_actions {
+            for action in actions.iter() {
+                let key = action.description().to_string();
+                groups.entry(key).or_insert_with(Vec::new).push(action.clone());
+            }
+        }
+        groups
+    }
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum RealignOrRebalance {
+    Realign(Realign),
+    Rebalance(Rebalance)
+}
+
+impl TryFrom<RealignOrRebalanceDto> for RealignOrRebalance {
+    type Error = String;
+
+    fn try_from(dto: RealignOrRebalanceDto) -> Result<Self, Self::Error> {
+        match dto {
+            RealignOrRebalanceDto::Realign(realign_dto) => Ok(RealignOrRebalance::Realign(realign_dto.try_into()?)),
+            RealignOrRebalanceDto::Rebalance(rebalance_dto) => Ok(RealignOrRebalance::Rebalance(rebalance_dto.try_into()?)),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Realign {
+    rationale: ConstrainedString1000,
+    recommended_investment_strategy: InvestmentStrategy
+}
+
+impl TryFrom<RealignDto> for Realign {
+    type Error = String;
+
+    fn try_from(dto: RealignDto) -> Result<Self, Self::Error> {
+        Ok(Realign {
+            rationale: dto.rationale.try_into()?,
+            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
         })
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Replace {
+pub struct Rebalance {
     rationale: ConstrainedString1000,
-    replacement_product_information: ReplacementProductInformation
+    recommended_investment_strategy: InvestmentStrategy
+}
+
+impl TryFrom<RebalanceDto> for Rebalance {
+    type Error = String;
+
+    fn try_from(dto: RebalanceDto) -> Result<Self, Self::Error> {
+        Ok(Rebalance {
+            rationale: dto.rationale.try_into()?,
+            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+        })
+    }
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum Replace {
+    FullyReplace(FullyReplace),
+    PartiallyReplace(PartiallyReplace)
 }
 
 impl TryFrom<ReplaceDto> for Replace {
     type Error = String;
 
     fn try_from(dto: ReplaceDto) -> Result<Self, Self::Error> {
+        match dto {
+            ReplaceDto::FullyReplace(fully_replace_dto) => {
+                Ok(Replace::FullyReplace(fully_replace_dto.try_into()?))
+            }
+            ReplaceDto::PartiallyReplace(partially_replace_dto) => {
+                Ok(Replace::PartiallyReplace(partially_replace_dto.try_into()?))
+            }
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FullyReplace {
+    rationale: ConstrainedString1000,
+    replacement_product_information: ReplacementProductInformation,
+    replace_to_details: FullyReplaceDetail,
+    linked_objectives: Vec<Uuid>
+}
+
+impl FullyReplace {
+    pub fn rationale(&self) -> &ConstrainedString1000 {
+        &self.rationale
+    }
+
+    pub fn replacement_product_information(&self) -> &ReplacementProductInformation {
+        &self.replacement_product_information
+    }
+
+    pub fn replace_to_details(&self) -> &FullyReplaceDetail {
+        &self.replace_to_details
+    }
+
+    pub fn linked_objectives(&self) -> &Vec<Uuid> {
+        &self.linked_objectives
+    }
+}
+
+impl TryFrom<FullyReplaceDto> for FullyReplace {
+    type Error = String;
+
+    fn try_from(dto: FullyReplaceDto) -> Result<Self, Self::Error> {
         Ok(Self {
             rationale: dto.rationale.try_into()?,
-            replacement_product_information: dto.replacement_product_information.try_into()?
+            replacement_product_information: dto.replacement_product_information.try_into()?,
+            replace_to_details: dto.replace_to_details.try_into()?,
+            linked_objectives: dto.linked_objectives.iter().map(|dto|Uuid::parse_str(&dto.as_str())).collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?,
         })
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PartialTransfer {
-    rationale: ConstrainedString1000,
-    value_to_transfer: ConstrainedMoneyAmountLarge,
-    replacement_product_information: ReplacementProductInformation
+pub struct FullyReplaceDetail {
+    method_of_transfer: Vec<MethodOfTransfer>,
+    transfer_to_account_or_reference_number: AccountOrReferenceNumberType
 }
 
-impl TryFrom<PartialTransferDto> for PartialTransfer {
+impl FullyReplaceDetail {
+    /// Returns a reference to the method of transfer.
+    pub fn method_of_transfer(&self) -> &Vec<MethodOfTransfer> {
+        &self.method_of_transfer
+    }
+
+    /// Returns a reference to the transfer-to account or reference number.
+    pub fn transfer_to_account_or_reference_number(&self) -> &AccountOrReferenceNumberType {
+        &self.transfer_to_account_or_reference_number
+    }
+}
+
+
+impl TryFrom<FullyReplaceDetailDto> for FullyReplaceDetail {
     type Error = String;
 
-    fn try_from(dto: PartialTransferDto) -> Result<Self, Self::Error> {
+    fn try_from(dto: FullyReplaceDetailDto) -> Result<Self, Self::Error> {
         Ok(Self {
-            rationale: dto.rationale.try_into()?,
-            value_to_transfer: dto.value_to_transfer.try_into()?,
-            replacement_product_information: dto.replacement_product_information.try_into()?
+            method_of_transfer: dto.method_of_transfer
+                .iter()
+                .map(|dto| dto.clone().try_into()) 
+                .collect::<Result<Vec<_>, _>>()?,
+
+            transfer_to_account_or_reference_number: dto.transfer_to_account_or_reference_number.try_into()?,
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum MethodOfTransfer {
+    InSpecieMethod(InSpecieMethod),
+    CashMethod(CashMethod)
+}
+
+impl TryFrom<MethodOfTransferDto> for MethodOfTransfer {
+    type Error = String;
+
+    fn try_from(dto: MethodOfTransferDto) -> Result<Self, Self::Error> {
+        match dto {
+            MethodOfTransferDto::CashMethod(dto) => Ok(MethodOfTransfer::CashMethod(dto.try_into()?)),
+            MethodOfTransferDto::InSpecieMethod(dto) => Ok(MethodOfTransfer::InSpecieMethod(dto.try_into()?)),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct InSpecieMethod {
+    value: ConstrainedMoneyAmountLarge,
+    funds_to_inspecie_transfer: Vec<FundHolding>
+}
+
+impl InSpecieMethod {
+    /// Returns the total value of the in-specie transfer.
+    pub fn value(&self) -> &ConstrainedMoneyAmountLarge {
+        &self.value
+    }
+
+    /// Returns a reference to the funds to be transferred in-specie.
+    pub fn funds_to_inspecie_transfer(&self) -> &Vec<FundHolding> {
+        &self.funds_to_inspecie_transfer
+    }
+}
+
+
+impl TryFrom<InSpecieMethodDto> for InSpecieMethod {
+    type Error = String;
+
+    fn try_from(dto: InSpecieMethodDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            value: dto.value.try_into()?,
+            funds_to_inspecie_transfer: dto
+                    .funds_to_inspecie_transfer
+                    .iter()
+                    .map(|dto| dto.clone().try_into()) 
+                    .collect::<Result<Vec<_>, _>>()?
+
+        })
+    }
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CashMethod {
+    value: ConstrainedMoneyAmountLarge
+}
+
+impl CashMethod {
+    /// Returns the total cash value for the transfer.
+    pub fn value(&self) -> &ConstrainedMoneyAmountLarge {
+        &self.value
+    }
+}
+
+
+impl TryFrom<CashMethodDto> for CashMethod {
+    type Error = String;
+
+    fn try_from(dto: CashMethodDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            value: dto.value.try_into()?,
+        })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PartiallyReplace {
+    rationale: ConstrainedString1000,
+    replacement_product_information: ReplacementProductInformation,
+    partially_replace_to_details: PartiallyReplaceDetail,
+    linked_objectives: Vec<Uuid>
+}
+
+impl PartiallyReplace {
+    /// Returns the rationale for partial replacement.
+    pub fn rationale(&self) -> &ConstrainedString1000 {
+        &self.rationale
+    }
+
+    /// Returns a reference to the replacement product information.
+    pub fn replacement_product_information(&self) -> &ReplacementProductInformation {
+        &self.replacement_product_information
+    }
+
+    /// Returns a reference to the partial replacement details.
+    pub fn partially_replace_to_details(&self) -> &PartiallyReplaceDetail {
+        &self.partially_replace_to_details
+    }
+
+    /// Returns a reference to the linked objectives.
+    pub fn linked_objectives(&self) -> &Vec<Uuid> {
+        &self.linked_objectives
+    }
+}
+
+
+impl TryFrom<PartiallyReplaceDto> for PartiallyReplace {
+    type Error = String;
+
+    fn try_from(dto: PartiallyReplaceDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            rationale: dto.rationale.try_into()?, 
+            replacement_product_information: dto.replacement_product_information.try_into()?, 
+            partially_replace_to_details: dto.partially_replace_to_details.try_into()?, 
+            linked_objectives: dto
+                .linked_objectives
+                .iter()
+                .map(|uuid_str| Uuid::parse_str(uuid_str.as_str()))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?, 
+        })
+    }
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PartiallyReplaceDetail {
+    method_of_transfer: Vec<MethodOfTransfer>,
+    transfer_to_account_or_reference_number: AccountOrReferenceNumberType,
+    amount_to_be_left_in_existing_product: ConstrainedMoneyAmountLarge,
+    reason_for_leaving_in_existing_product: ConstrainedString1000
+}
+
+impl PartiallyReplaceDetail {
+    /// Returns a reference to the method of transfer.
+    pub fn method_of_transfer(&self) -> &Vec<MethodOfTransfer> {
+        &self.method_of_transfer
+    }
+
+    /// Returns a reference to the transfer-to account or reference number.
+    pub fn transfer_to_account_or_reference_number(&self) -> &AccountOrReferenceNumberType {
+        &self.transfer_to_account_or_reference_number
+    }
+
+    /// Returns the amount that will be left in the existing product.
+    pub fn amount_to_be_left_in_existing_product(&self) -> &ConstrainedMoneyAmountLarge {
+        &self.amount_to_be_left_in_existing_product
+    }
+
+    /// Returns the reason for leaving funds in the existing product.
+    pub fn reason_for_leaving_in_existing_product(&self) -> &ConstrainedString1000 {
+        &self.reason_for_leaving_in_existing_product
+    }
+}
+
+
+impl TryFrom<PartiallyReplaceDetailDto> for PartiallyReplaceDetail {
+    type Error = String;
+
+    fn try_from(dto: PartiallyReplaceDetailDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            method_of_transfer: dto.method_of_transfer
+                .iter()
+                .map(|dto| dto.clone().try_into())
+                .collect::<Result<Vec<_>, _>>()?,
+
+            transfer_to_account_or_reference_number: dto.transfer_to_account_or_reference_number.try_into()?,
+            amount_to_be_left_in_existing_product: dto.amount_to_be_left_in_existing_product.try_into()?,
+            reason_for_leaving_in_existing_product: dto.reason_for_leaving_in_existing_product.try_into()?,
         })
     }
 }
@@ -1133,7 +2155,7 @@ impl TryFrom<SingleWithdrawalDto> for SingleWithdrawal {
 pub struct SingleContribution {
     value: ConstrainedMoneyAmountLarge,
     executive_summary_description: ConstrainedString200,
-    rationale: ConstrainedString1000,
+    rationale: Option<ConstrainedString1000>,
     date_of_action: Option<Date>,
     tax_year_of_action: Option<TaxYear>
 }
@@ -1145,12 +2167,40 @@ impl TryFrom<SingleContributionDto> for SingleContribution {
         Ok(Self {
             value: dto.value.try_into()?,
             executive_summary_description: dto.executive_summary_description.try_into()?,
-            rationale: dto.rationale.try_into()?,
+            rationale: dto.rationale.map(|dto|dto.try_into()).transpose()?,
             date_of_action: if dto.date_of_action.is_some() { Some(dto.date_of_action.unwrap().try_into()?) } else { None },
             tax_year_of_action: if dto.tax_year_of_action.is_some() { Some(dto.tax_year_of_action.unwrap().try_into()?) } else { None }
         })
     }
 }
+
+impl SingleContribution {
+    /// Returns a reference to the contribution value.
+    pub fn value(&self) -> &ConstrainedMoneyAmountLarge {
+        &self.value
+    }
+
+    /// Returns a reference to the executive summary description.
+    pub fn executive_summary_description(&self) -> &ConstrainedString200 {
+        &self.executive_summary_description
+    }
+
+    /// Returns an optional reference to the rationale.
+    pub fn rationale(&self) -> Option<&ConstrainedString1000> {
+        self.rationale.as_ref()
+    }
+
+    /// Returns an optional reference to the date of action.
+    pub fn date_of_action(&self) -> Option<&Date> {
+        self.date_of_action.as_ref()
+    }
+
+    /// Returns an optional reference to the tax year of action.
+    pub fn tax_year_of_action(&self) -> Option<&TaxYear> {
+        self.tax_year_of_action.as_ref()
+    }
+}
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1212,11 +2262,12 @@ impl TryFrom<RegularWithdrawalDto> for RegularWithdrawal {
 #[serde(rename_all = "camelCase")]
 pub struct Transfer {
     value: ConstrainedMoneyAmountLarge,
-    executive_summary_description: ConstrainedString200,
+    executive_summary_description_receiving_product: Option<ConstrainedString200>,
+    executive_summary_description_transferring_product: Option<ConstrainedString200>,
     rationale: ConstrainedString1000,
     date_of_action: Option<Date>,
     tax_year_of_action: Option<TaxYear>,
-    transfer_to_details: Vec<TransferDetail>
+    transfer_to_details: TransferDetail
 }
 
 impl TryFrom<TransferDto> for Transfer {
@@ -1224,18 +2275,14 @@ impl TryFrom<TransferDto> for Transfer {
 
     fn try_from(dto: TransferDto) -> Result<Self, Self::Error> {
 
-        let transfer_to_details = dto.transfer_to_details
-                                                                .iter()
-                                                                .map(|dto| dto.clone().try_into())
-                                                                .collect::<Result<_,_>>()?;
-
         Ok(Self {
             value: dto.value.try_into()?,
-            executive_summary_description: dto.executive_summary_description.try_into()?,
+            executive_summary_description_receiving_product: dto.executive_summary_description_receiving_product.map(|dto| dto.try_into()).transpose()?,
+            executive_summary_description_transferring_product: dto. executive_summary_description_transferring_product.map(|dto| dto.try_into()).transpose()?,
             rationale: dto.rationale.try_into()?,
             date_of_action: if dto.date_of_action.is_some() { Some(dto.date_of_action.unwrap().try_into()?) } else { None },
             tax_year_of_action: if dto.tax_year_of_action.is_some() { Some(dto.tax_year_of_action.unwrap().try_into()?) } else { None },
-            transfer_to_details
+            transfer_to_details: dto.transfer_details.try_into()?
         })
     }
 }
@@ -1268,29 +2315,9 @@ impl TryFrom<StopWithdrawalDto> for StopWithdrawal {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct InvestableInvestmentStrategy {
-    risk_level: RiskProfile,
-    fund_allocations: BespokeOrFirmInvestmentStrategy
-}
-
-impl TryFrom<InvestableInvestmentStrategyDto> for InvestableInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: InvestableInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        Ok(Self {
-            risk_level: dto.risk_level.try_into()?,
-            fund_allocations: dto.fund_allocations.try_into()?
-        })
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct TransferDetail {
-    value: ConstrainedMoneyAmountLarge,
-    transfer_to_provider: Provider,
-    transfer_to_tax_wrapper: TaxWrapperType,
-    transfer_to_account_or_reference_number: Option<AccountOrReferenceNumberType>
+    pub transfer_to_account_or_reference_number: AccountOrReferenceNumberType,
+    pub transfer_from_account_or_reference_number: KnownOrUnknownAccount,
 }
 
 impl TryFrom<TransferDetailDto> for TransferDetail {
@@ -1298,11 +2325,32 @@ impl TryFrom<TransferDetailDto> for TransferDetail {
 
     fn try_from(dto: TransferDetailDto) -> Result<Self, Self::Error> {
         Ok(Self {
-            value: dto.value.try_into()?,
-            transfer_to_account_or_reference_number: dto.transfer_to_account_or_reference_number.map(|dto| dto.try_into()).transpose()?,
-            transfer_to_provider: dto.transfer_to_provider.try_into()?,
-            transfer_to_tax_wrapper: dto.transfer_to_tax_wrapper.try_into()?
+            transfer_to_account_or_reference_number: dto.transfer_to_account_or_reference_number.try_into()?,
+            transfer_from_account_or_reference_number: dto.transfer_from_account_or_reference_number.try_into()?
         })
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum KnownOrUnknownAccount {
+    Known(AccountOrReferenceNumberType),
+    Unknown { description: ConstrainedString200, account_type: AccountType }
+}
+
+impl TryFrom<KnownOrUnknownAccountDto> for KnownOrUnknownAccount {
+    type Error = String;
+
+    fn try_from(dto: KnownOrUnknownAccountDto) -> Result<Self, Self::Error> {
+        match dto {
+            KnownOrUnknownAccountDto::Known(account_or_reference_number_type) => Ok(KnownOrUnknownAccount::Known(account_or_reference_number_type.try_into()?)),
+            KnownOrUnknownAccountDto::Unknown{ description, account_type } => { 
+                Ok(KnownOrUnknownAccount::Unknown{ 
+                        description: description.try_into()?, 
+                        account_type: account_type.try_into()?
+                }) 
+            }
+        }
     }
 }
 
@@ -1323,66 +2371,6 @@ impl TryFrom<ReplacementProductInformationDto> for ReplacementProductInformation
             }
             ReplacementProductInformationDto::InvestmentReplacementProductInformation(investment_replacement_product_information_dto) => {
                 Ok(Self::InvestmentReplacementProductInformation(investment_replacement_product_information_dto.try_into()?))
-            }
-        }
-    }
-} 
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum BespokeOrFirmInvestmentStrategy {
-    BespokeInvestmentStrategy(BespokeInvestmentStrategy),
-    FirmInvestmentStrategy(PresentFirmInvestmentStrategy)
-}
-
-impl TryFrom<BespokeOrFirmInvestmentStrategyDto> for BespokeOrFirmInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: BespokeOrFirmInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        match dto {
-            BespokeOrFirmInvestmentStrategyDto::BespokeInvestmentStrategy(bespoke_investment_strategy_dto) => {
-                Ok(Self::BespokeInvestmentStrategy(bespoke_investment_strategy_dto.try_into()?))
-            }
-            BespokeOrFirmInvestmentStrategyDto::FirmInvestmentStrategy(firm_investment_strategy_dto) => {
-                Ok(Self::FirmInvestmentStrategy(firm_investment_strategy_dto.try_into()?))
-            }
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct BespokeInvestmentStrategy {
-    description: ConstrainedString200,
-    fund_allocation: Option<FundHolding>
-}
-
-impl TryFrom<BespokeInvestmentStrategyDto> for BespokeInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: BespokeInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        Ok(Self {
-            description: dto.description.try_into()?,
-            fund_allocation: if dto.fund_allocation.is_some() { Some(dto.fund_allocation.unwrap().try_into()?) } else { None }
-        })
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum PresentFirmInvestmentStrategy {
-    PrimeModerate(Vec<FundHolding>)
-}
-
-impl TryFrom<PresentFirmInvestmentStrategyDto> for PresentFirmInvestmentStrategy {
-    type Error = String;
-
-    fn try_from(dto: PresentFirmInvestmentStrategyDto) -> Result<Self, Self::Error> {
-        match dto {
-            PresentFirmInvestmentStrategyDto::PrimeModerate(fund_holdings_dto) => {
-                Ok(Self::PrimeModerate(
-                    fund_holdings_dto.iter().map(|fund_holding_dto| fund_holding_dto.clone().try_into()).collect::<Result<_,_>>()?
-                ))
             }
         }
     }
@@ -1504,7 +2492,7 @@ impl TryFrom<InvestmentReplacementProductInformationDto> for InvestmentReplaceme
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum PlatformAccountNumberType {
     Abrdn(AbrdnAccountNumber),
     Transact(TransactPlatformNumber),
@@ -1541,13 +2529,19 @@ impl fmt::Display for PlatformAccountNumberType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum AccountOrReferenceNumberType {
     Abrdn(AbrdnFullAccountNumber),
     AbrdnSipp(AbrdnSippNumber),
     Transact(TransactReferenceNumber),
     Other(ConstrainedString200),
     NewAccount(Uuid)
+}
+
+impl Default for AccountOrReferenceNumberType {
+    fn default() -> Self {
+        Self::Other(ConstrainedString200::default())
+    }
 }
 
 impl TryFrom<AccountOrReferenceNumberTypeDto> for AccountOrReferenceNumberType {

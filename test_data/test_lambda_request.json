@@ -51,7 +51,7 @@
         "name": ["me"]
     },
 	"pathParameters": {
-		
+		"proxy": "test"
 	},
 	"stageVariables": {
 		"stageVariableName": "stageVariableValue"

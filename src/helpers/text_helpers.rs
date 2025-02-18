@@ -22,23 +22,31 @@ where
         .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))?
         .formatted_day_month();
 
-    // Handle additional attendees
-    let additional_attendees: Result<Vec<_>, _> = dto
-        .get_additional_attendees()
-        .iter()
-        .map(|a| {
-            AdditionalMeetingAttendee::try_from(a.clone())
-                .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))
-        })
-        .collect();
-    let additional_company_attendees: Result<Vec<_>, _> = dto
-        .get_additional_company_attendees()
-        .iter()
-        .map(|a| {
-            AdditionalCompanyMeetingAttendee::try_from(a.clone())
-                .map_err(|e| ReportError::SectionValidationError("Background Section".to_string(), e.to_string()))
-        })
-        .collect();
+    // Handle additional attendees (now wrapped in Option)
+    let additional_attendees: Result<Vec<_>, _> = match dto.get_additional_attendees() {
+        Some(attendees) => attendees
+            .iter()
+            .map(|a| {
+                AdditionalMeetingAttendee::try_from(a.clone()).map_err(|e| {
+                    ReportError::SectionValidationError("Background Section".to_string(), e.to_string())
+                })
+            })
+            .collect(),
+        None => Ok(vec![]),
+    };
+
+    // Handle additional company attendees (now wrapped in Option)
+    let additional_company_attendees: Result<Vec<_>, _> = match dto.get_additional_company_attendees() {
+        Some(attendees) => attendees
+            .iter()
+            .map(|a| {
+                AdditionalCompanyMeetingAttendee::try_from(a.clone()).map_err(|e| {
+                    ReportError::SectionValidationError("Background Section".to_string(), e.to_string())
+                })
+            })
+            .collect(),
+        None => Ok(vec![]),
+    };
 
     let additional_attendees = additional_attendees?;
     let additional_company_attendees = additional_company_attendees?;
@@ -66,8 +74,12 @@ where
         let attendee_details: Vec<String> = additional_attendees
             .iter()
             .map(|a| match &a.relationship_to_client {
-                RelationshipToClient::Accountant => format!("{} {}, your Accountant", a.first_name, a.last_name),
-                RelationshipToClient::Solicitor => format!("{} {}, your Solicitor", a.first_name, a.last_name),
+                RelationshipToClient::Accountant => {
+                    format!("{} {}, your Accountant", a.first_name, a.last_name)
+                }
+                RelationshipToClient::Solicitor => {
+                    format!("{} {}, your Solicitor", a.first_name, a.last_name)
+                }
                 RelationshipToClient::Other(other) => format!(
                     "{} {}, your {}",
                     a.first_name, a.last_name, other.description_of_relationship
@@ -87,6 +99,7 @@ where
 
     Ok(background_text)
 }
+
 
 
 

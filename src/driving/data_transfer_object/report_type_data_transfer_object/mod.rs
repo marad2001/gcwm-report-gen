@@ -11,6 +11,7 @@ pub mod risk_assessment_dto;
 pub mod advice_areas_and_products_dto;
 pub mod product;
 pub mod advice_areas;
+pub mod investment_holdings;
 
 use couple_annual_review_data_transfer_object::CoupleAnnualReviewReportDataTransferObject;
 use individual_annual_review_data_transfer_object::IndividualAnnualReviewReportDataTransferObject;

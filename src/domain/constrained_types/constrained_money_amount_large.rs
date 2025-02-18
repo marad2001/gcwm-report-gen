@@ -2,7 +2,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use num_format::{Locale, ToFormattedString};
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct ConstrainedMoneyAmountLarge(f64);
 
 impl ConstrainedMoneyAmountLarge {

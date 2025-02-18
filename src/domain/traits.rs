@@ -14,6 +14,6 @@ pub trait ValidatableReport {
 pub trait BackgroundSectionDtoTrait {
     fn get_meeting_location(&self) -> &MeetingLocationDataTransferObject;
     fn get_meeting_date(&self) -> String;
-    fn get_additional_attendees(&self) -> &Vec<AdditionalMeetingAttendeeDataTransferObject>;
-    fn get_additional_company_attendees(&self) -> &Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>;
+    fn get_additional_attendees(&self) -> &Option<Vec<AdditionalMeetingAttendeeDataTransferObject>>;
+    fn get_additional_company_attendees(&self) -> &Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>>;
 }

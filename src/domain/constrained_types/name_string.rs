@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct NameString(String);
 
 impl NameString {
@@ -30,8 +30,9 @@ impl TryFrom<String> for NameString {
             return Err("A name must be between 2 and 50 characters long");
         }
 
-        if !trimmed.chars().all(|c| c.is_alphabetic() || c == '-' || c == ' ') {
-            return Err("A name can only contain alphabetic characters, hyphens, or spaces");
+        // Allow alphabetic characters, hyphens, apostrophes, or spaces
+        if !trimmed.chars().all(|c| c.is_alphabetic() || c == '-' || c == ' ' || c == '\'') {
+            return Err("A name can only contain alphabetic characters, hyphens, apostrophes, or spaces");
         }
 
         // Capitalise the first letter and lowercase the rest

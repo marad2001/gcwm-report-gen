@@ -1,8 +1,8 @@
 use std::fmt;
-use chrono::{NaiveDate, ParseError, Datelike};
+use chrono::{NaiveDate, Datelike};
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct Date(NaiveDate);
 
 impl Date {
@@ -38,10 +38,8 @@ impl TryFrom<String> for Date {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         // Ensure the string is not empty
         if value.trim().is_empty() {
-            return Err("Date cannot be empty.".to_string());
+            return Err(" date cannot be empty.".to_string());
         }
-
-        println!("Date: {:?}", value);
 
         // Attempt to parse the date in UK format (DD/MM/YYYY)
         let parsed_date = NaiveDate::parse_from_str(&value, "%d/%m/%Y")
@@ -50,7 +48,7 @@ impl TryFrom<String> for Date {
         // Validate the year must be >= 1900
         if parsed_date.year() < 1900 {
             return Err(format!(
-                "Date cannot be before 1900. Provided date: {}",
+                " date cannot be before 1900. Provided date: {}",
                 parsed_date.format("%d/%m/%Y")
             ));
         }
