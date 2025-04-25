@@ -1,7 +1,6 @@
 use serde::Serialize;
 use crate::domain::constrained_types::client_id::{ClientId, IoId};
 use crate::domain::report::Report;
-use crate::driven::repository::MainContactAddress;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::ReportTypeDataTransferObject;
 
 use super::ReportError;

@@ -2,14 +2,14 @@ use std::fmt;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct AnnualReviewBackgroundSectionDataTransferObject{
-    pub meeting_location: MeetingLocationDataTransferObject,
-    pub additional_attendees: Option<Vec<AdditionalMeetingAttendeeDataTransferObject>>,
-    pub additional_company_attendees: Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>>,
-    pub meeting_date: String
-}
+// #[derive(Deserialize, Serialize, Debug, Clone)]
+// #[serde(rename_all = "camelCase")]
+// pub struct AnnualReviewBackgroundSectionDataTransferObject{
+//     pub meeting_location: MeetingLocationDataTransferObject,
+//     pub additional_attendees: Option<Vec<AdditionalMeetingAttendeeDataTransferObject>>,
+//     pub additional_company_attendees: Option<Vec<AdditionalCompanyMeetingAttendeeDataTransferObject>>,
+//     pub meeting_date: String
+// }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
