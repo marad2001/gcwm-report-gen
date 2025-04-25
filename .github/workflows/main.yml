@@ -13,7 +13,14 @@ jobs:
       # 1) Check out your code
       - uses: actions/checkout@v3
 
-      # 2) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
+      # 2) Restrict default repos to amd64 only
+      - name: Restrict default repos to amd64
+        run: |
+          # for each deb line in /etc/apt/sources.list, add [arch=amd64]
+          sudo sed -i.bak -E 's|^deb (http://azure.archive.ubuntu.com/ubuntu)|deb [arch=amd64] \1|' /etc/apt/sources.list
+          sudo sed -i -E 's|^deb (http://azure.archive.ubuntu.com/ubuntu)|deb [arch=amd64] \1|' /etc/apt/sources.list.d/*.list || true
+
+      # 3) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
       - name: Prepare AArch64 OpenSSL
         run: |
           # enable multi-arch
@@ -21,10 +28,10 @@ jobs:
 
           # point APT at the official ports archive for arm64 packages
           sudo tee /etc/apt/sources.list.d/arm64-ports.list <<EOF
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
-EOF
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+          EOF
 
           # update & install cross-toolchain + arm64 OpenSSL dev
           sudo apt-get update
@@ -40,7 +47,7 @@ EOF
           PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
           PKG_CONFIG_PATH: "/usr/aarch64-linux-gnu/lib/pkgconfig"
 
-      # 3) Build & deploy to Lambda using the Rust action
+      # 4) Build & deploy to Lambda using the Rust action
       - name: Deploy code to Lambda
         uses: qxf2/rust-lambda-action@v1.0.1
         with:
