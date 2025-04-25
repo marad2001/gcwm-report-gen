@@ -1,4 +1,5 @@
 name: deploy-gcwm-report-gen-lambda
+
 on:
   push:
     branches:
@@ -7,14 +8,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
+      # 1) Check out your code
       - uses: actions/checkout@v3
 
-      - name: Install system deps (OpenSSL, pkg-config)
+      # 2) Add ARM64 architecture and install cross‐compile OpenSSL dev packages
+      - name: Add arm64 architecture & install cross-OpenSSL dev packages
         run: |
+          sudo dpkg --add-architecture arm64
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            libc6-dev:arm64 \
+            libssl-dev:arm64 \
+            pkg-config-aarch64-linux-gnu
+        env:
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
+          PKG_CONFIG_PATH: "/usr/aarch64-linux-gnu/lib/pkgconfig"
 
+      # 3) Build & deploy to Lambda using the Rust action
       - name: Deploy code to Lambda
         uses: qxf2/rust-lambda-action@v1.0.1
         with:
