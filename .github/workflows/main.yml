@@ -12,24 +12,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 1) Turn off the built-in Azure archive entries and add ours as amd64-only
-      - name: Pin Azure archive to amd64
+      # 1) Disable Azure mirror entirely and add official Ubuntu archive for amd64
+      - name: Use official Ubuntu archive for amd64
         run: |
-          # comment out any existing azure.archive lines
+          # disable any ubuntu.sources (Azure) entries
+          sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.disabled || true
+          # comment out any remaining Azure lines
           sudo sed -i.bak -E 's|^(deb .*azure\.archive\.ubuntu\.com/ubuntu.*)|# \1|' \
             /etc/apt/sources.list \
             /etc/apt/sources.list.d/*.list || true
 
-          # now provide the exact same four suites, but with [arch=amd64]
-          sudo tee /etc/apt/sources.list.d/azure-archive-amd64.list <<EOF
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-backports main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
+          # add official Ubuntu archive for amd64
+          sudo tee /etc/apt/sources.list.d/ubuntu-archive-amd64.list <<EOF
+          deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse
+          deb http://archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
+          deb http://archive.ubuntu.com/ubuntu noble-backports main universe restricted multiverse
+          deb http://archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
           EOF
 
-      # 2) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
-      - name: Prepare AArch64 OpenSSL
+      # 2) Enable arm64 + add Ubuntu Ports for arm64 + install cross-OpenSSL dev
+      - name: Prepare AArch64 OpenSSL & toolchain
         run: |
           sudo dpkg --add-architecture arm64
 
