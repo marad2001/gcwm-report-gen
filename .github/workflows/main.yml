@@ -1,72 +1,21 @@
-name: Build
-
+name: deploy-gcwm-report-gen-lambda
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: main
+  
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Pin Ubuntu & Azure archives to amd64
-        run: |
-          # Comment out any existing archive.ubuntu.com or azure.archive.ubuntu.com lines
-          sudo sed -i.bak \
-            -e '/^deb .*archive.ubuntu.com\/ubuntu/ s/^/# /' \
-            -e '/^deb .*azure.archive.ubuntu.com\/ubuntu/ s/^/# /' \
-            /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
-
-          # Azure archive → amd64 only
-          sudo tee /etc/apt/sources.list.d/azure-archive-amd64.list <<EOF
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-backports main universe restricted multiverse
-          deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
-          EOF
-
-          # Official Ubuntu archive → amd64 only
-          sudo tee /etc/apt/sources.list.d/ubuntu-archive-amd64.list <<EOF
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-backports main universe restricted multiverse
-          deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
-          EOF
-
-      - name: Prepare AArch64 OpenSSL
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo tee /etc/apt/sources.list.d/arm64-ports.list <<EOF
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
-          EOF
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            libc6-dev:arm64 \
-            libssl-dev:arm64 \
-            pkg-config
-        env:
-          PKG_CONFIG_ALLOW_CROSS: "1"
-          PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
-          PKG_CONFIG_PATH: "/usr/aarch64-linux-gnu/lib/pkgconfig"
-
-      - name: Build Rust Lambda for ARM64
-        uses: qxf2/rust-lambda-action@v1.0.1
-        with:
-          profile: release
-          target: aarch64-unknown-linux-gnu
-
-      # (optional) run tests on the cross‐built target
-      - name: Run tests
-        run: cargo test --release --target aarch64-unknown-linux-gnu
+    - uses: actions/checkout@main
+    - name: Deploy code to Lambda
+      uses: qxf2/rust-lambda-action@v1.0.1
+      with:
+        lambda_directory: '.'
+        iam_role: ${{ secrets.AWS_IAM_ROLE }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
 
