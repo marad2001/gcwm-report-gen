@@ -12,15 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 1) Turn off the built-in Azure archive entries and add ours as amd64-only
-      - name: Pin Azure archive to amd64
+      # 1) Disable the built-in ubuntu.sources (which includes the Azure archive entries)
+      - name: Disable built-in Ubuntu sources
         run: |
-          # comment out any existing azure.archive lines
-          sudo sed -i.bak -E 's|^(deb .*azure\.archive\.ubuntu\.com/ubuntu.*)|# \1|' \
+          sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.disabled || true
+
+      # 2) Comment out any existing archive.ubuntu.com or azure.archive.ubuntu.com lines
+      #    then re-add them, pinned to amd64 only.
+      - name: Pin Ubuntu & Azure archives to amd64
+        run: |
+          sudo sed -i.bak -E 's|^(deb .*(archive\.ubuntu\.com|azure\.archive\.ubuntu\.com)/ubuntu.*)|# \1|' \
             /etc/apt/sources.list \
             /etc/apt/sources.list.d/*.list || true
 
-          # now provide the exact same four suites, but with [arch=amd64]
+          # Azure archive → amd64 only
           sudo tee /etc/apt/sources.list.d/azure-archive-amd64.list <<EOF
           deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble main universe restricted multiverse
           deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
@@ -28,13 +33,7 @@ jobs:
           deb [arch=amd64] http://azure.archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
           EOF
 
-      # 1b) Make sure the official Ubuntu archive is also pinned to amd64
-      - name: Pin Ubuntu archive to amd64
-        run: |
-          sudo sed -i.bak -E 's|^(deb .*archive\.ubuntu\.com/ubuntu.*)|# \1|' \
-            /etc/apt/sources.list \
-            /etc/apt/sources.list.d/*.list || true
-
+          # Official Ubuntu archive → amd64 only
           sudo tee /etc/apt/sources.list.d/ubuntu-archive-amd64.list <<EOF
           deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse
           deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-updates main universe restricted multiverse
@@ -42,7 +41,7 @@ jobs:
           deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
           EOF
 
-      # 2) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
+      # 3) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
       - name: Prepare AArch64 OpenSSL
         run: |
           sudo dpkg --add-architecture arm64
@@ -62,7 +61,7 @@ jobs:
           PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
           PKG_CONFIG_PATH: "/usr/aarch64-linux-gnu/lib/pkgconfig"
 
-      # 3) Build & deploy to Lambda
+      # 4) Build & deploy to Lambda
       - name: Deploy code to Lambda
         uses: qxf2/rust-lambda-action@v1.0.1
         with:
@@ -71,4 +70,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
 
