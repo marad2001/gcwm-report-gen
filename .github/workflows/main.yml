@@ -1,7 +1,10 @@
-name: deploy-gcwm-report-gen-lambda
+name: Build
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
@@ -10,20 +13,16 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 1) Disable the built-in ubuntu.sources (which includes the Azure archive entries)
-      - name: Disable built-in Ubuntu sources
-        run: |
-          sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.disabled || true
-
-      # 2) Comment out any existing archive.ubuntu.com or azure.archive.ubuntu.com lines
-      #    then re-add them, pinned to amd64 only.
       - name: Pin Ubuntu & Azure archives to amd64
         run: |
-          sudo sed -i.bak -E 's|^(deb .*(archive\.ubuntu\.com|azure\.archive\.ubuntu\.com)/ubuntu.*)|# \1|' \
-            /etc/apt/sources.list \
-            /etc/apt/sources.list.d/*.list || true
+          # Comment out any existing archive.ubuntu.com or azure.archive.ubuntu.com lines
+          sudo sed -i.bak \
+            -e '/^deb .*archive.ubuntu.com\/ubuntu/ s/^/# /' \
+            -e '/^deb .*azure.archive.ubuntu.com\/ubuntu/ s/^/# /' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.list || true
 
           # Azure archive → amd64 only
           sudo tee /etc/apt/sources.list.d/azure-archive-amd64.list <<EOF
@@ -41,7 +40,6 @@ jobs:
           deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble-security main universe restricted multiverse
           EOF
 
-      # 3) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
       - name: Prepare AArch64 OpenSSL
         run: |
           sudo dpkg --add-architecture arm64
@@ -55,20 +53,20 @@ jobs:
             gcc-aarch64-linux-gnu \
             libc6-dev:arm64 \
             libssl-dev:arm64 \
-            pkg-config-aarch64-linux-gnu
+            pkg-config
         env:
           PKG_CONFIG_ALLOW_CROSS: "1"
           PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
           PKG_CONFIG_PATH: "/usr/aarch64-linux-gnu/lib/pkgconfig"
 
-      # 4) Build & deploy to Lambda
-      - name: Deploy code to Lambda
+      - name: Build Rust Lambda for ARM64
         uses: qxf2/rust-lambda-action@v1.0.1
         with:
-          lambda_directory: '.'
-          iam_role: ${{ secrets.AWS_IAM_ROLE }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          profile: release
+          target: aarch64-unknown-linux-gnu
+
+      # (optional) run tests on the cross‐built target
+      - name: Run tests
+        run: cargo test --release --target aarch64-unknown-linux-gnu
 
 
