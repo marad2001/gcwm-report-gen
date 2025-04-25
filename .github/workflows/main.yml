@@ -7,22 +7,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       # 1) Check out your code
       - uses: actions/checkout@v3
 
-      # 2) Add ARM64 architecture and install cross‐compile OpenSSL dev packages
-      - name: Add arm64 architecture & install cross-OpenSSL dev packages
+      # 2) Enable arm64 + add Ubuntu ports repository for arm64 + install cross-OpenSSL dev
+      - name: Prepare AArch64 OpenSSL
         run: |
+          # enable multi-arch
           sudo dpkg --add-architecture arm64
+
+          # point APT at the official ports archive for arm64 packages
+          sudo tee /etc/apt/sources.list.d/arm64-ports.list <<EOF
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+EOF
+
+          # update & install cross-toolchain + arm64 OpenSSL dev
           sudo apt-get update
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
             libc6-dev:arm64 \
             libssl-dev:arm64 \
             pkg-config-aarch64-linux-gnu
+
+        # tell pkg-config to look in the AArch64 sysroot
         env:
           PKG_CONFIG_ALLOW_CROSS: "1"
           PKG_CONFIG_SYSROOT_DIR: "/usr/aarch64-linux-gnu"
@@ -37,3 +49,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
