@@ -1,4 +1,3 @@
-# .github/workflows/build-lambda.yml
 name: Build Lambda (ARM64 + Vendored OpenSSL)
 
 on:
@@ -39,15 +38,16 @@ jobs:
           EOF
 
       - name: Build Lambda with vendored OpenSSL
-        run: cargo lambda build --release --arm64
         env:
           OPENSSL_STATIC: true
+        run: cargo lambda build --release --arm64
 
       - name: Upload Lambda artifact
         uses: actions/upload-artifact@v3
         with:
           name: lambda-arm64
           path: target/aarch64-unknown-linux-gnu/release/bootstrap
+
 
 
 
