@@ -48,6 +48,7 @@ jobs:
           path: target/aarch64-unknown-linux-gnu/release/bootstrap
 
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     needs: build
     steps:
