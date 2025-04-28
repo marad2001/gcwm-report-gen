@@ -1,20 +1,51 @@
-name: deploy-gcwm-report-gen-lambda
+name: Build
+
 on:
   push:
-    branches: main
-  
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
     steps:
-    - uses: actions/checkout@main
-    - name: Deploy code to Lambda
-      uses: qxf2/rust-lambda-action@v1.0.1
-      with:
-        lambda_directory: '.'
-        iam_role: ${{ secrets.AWS_IAM_ROLE }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-          
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            build-essential \
+            pkg-config
+
+      - name: Add ARM64 Rust target
+        run: rustup target add aarch64-unknown-linux-gnu
+
+      - name: Configure Cargo for cross-linking
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<EOF
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
+      - name: Build Rust Lambda for ARM64 (vendored OpenSSL)
+        uses: qxf2/rust-lambda-action@v1.0.1
+        with:
+          profile: release
+          target: aarch64-unknown-linux-gnu
+        env:
+          # force openssl-sys to compile its bundled copy of OpenSSL
+          OPENSSL_STATIC: "true"
+
+      - name: Run ARM64 tests
+        run: cargo test --release --target aarch64-unknown-linux-gnu
+
+
+
