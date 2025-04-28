@@ -10,16 +10,13 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Install cross-compile toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            build-essential \
-            pkg-config
+          sudo apt-get install -y gcc-aarch64-linux-gnu build-essential pkg-config
 
       - name: Add ARM64 Rust target
         run: rustup target add aarch64-unknown-linux-gnu
@@ -29,10 +26,10 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install cargo-lambda
 
-      - name: Configure Cargo linker for ARM64
+      - name: Configure Cargo linker
         run: |
           mkdir -p .cargo
-          cat > .cargo/config.toml <<EOF
+          cat <<EOF > .cargo/config.toml
           [target.aarch64-unknown-linux-gnu]
           linker = "aarch64-linux-gnu-gcc"
           EOF
@@ -47,6 +44,7 @@ jobs:
         with:
           name: lambda-arm64
           path: target/aarch64-unknown-linux-gnu/release/bootstrap
+
 
 
 
