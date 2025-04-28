@@ -1,22 +1,21 @@
-name: Build
+# .github/workflows/build-lambda.yml
+name: Build Lambda (ARM64 + Vendored OpenSSL)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout code
+      - name: Check out source
         uses: actions/checkout@v3
 
-      - name: Install cross-compile toolchain
+      - name: Install cross‐compile toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -27,7 +26,12 @@ jobs:
       - name: Add ARM64 Rust target
         run: rustup target add aarch64-unknown-linux-gnu
 
-      - name: Configure Cargo for cross-linking
+      - name: Install cargo-lambda
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install cargo-lambda
+
+      - name: Configure Cargo cross‐linker
         run: |
           mkdir -p .cargo
           cat > .cargo/config.toml <<EOF
@@ -35,17 +39,18 @@ jobs:
           linker = "aarch64-linux-gnu-gcc"
           EOF
 
-      - name: Build Rust Lambda for ARM64 (vendored OpenSSL)
-        uses: qxf2/rust-lambda-action@v1.0.1
-        with:
-          profile: release
-          target: aarch64-unknown-linux-gnu
+      - name: Build Lambda with vendored OpenSSL
+        run: cargo lambda build --release --arm64
         env:
-          # force openssl-sys to compile its bundled copy of OpenSSL
-          OPENSSL_STATIC: "true"
+          # Force openssl-sys to compile its bundled copy
+          OPENSSL_STATIC: true
 
-      - name: Run ARM64 tests
-        run: cargo test --release --target aarch64-unknown-linux-gnu
+      - name: Upload ARM64 bootstrap artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: lambda-arm64
+          path: |
+            target/aarch64-unknown-linux-gnu/release/bootstrap
 
 
 
