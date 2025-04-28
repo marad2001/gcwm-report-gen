@@ -3,19 +3,18 @@ name: Build Lambda (ARM64 + Vendored OpenSSL)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out source
+      - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Install cross‐compile toolchain
+      - name: Install cross-compile toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -31,7 +30,7 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install cargo-lambda
 
-      - name: Configure Cargo cross‐linker
+      - name: Configure Cargo linker for ARM64
         run: |
           mkdir -p .cargo
           cat > .cargo/config.toml <<EOF
@@ -42,15 +41,13 @@ jobs:
       - name: Build Lambda with vendored OpenSSL
         run: cargo lambda build --release --arm64
         env:
-          # Force openssl-sys to compile its bundled copy
           OPENSSL_STATIC: true
 
-      - name: Upload ARM64 bootstrap artifact
+      - name: Upload Lambda artifact
         uses: actions/upload-artifact@v3
         with:
           name: lambda-arm64
-          path: |
-            target/aarch64-unknown-linux-gnu/release/bootstrap
+          path: target/aarch64-unknown-linux-gnu/release/bootstrap
 
 
 
