@@ -12,18 +12,16 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Install cross-compile toolchain
+      - name: Install system dependencies & Rust target
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
             build-essential \
             pkg-config
-
-      - name: Add ARM64 Rust target
-        run: rustup target add aarch64-unknown-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu
 
       - name: Install cargo-lambda
         run: |
@@ -46,12 +44,13 @@ jobs:
       - name: Deploy to AWS Lambda
         uses: qxf2/rust-lambda-action@v1.0.1
         with:
-          # the folder containing the `bootstrap` binary that cargo-lambda just produced
+          # point at the directory containing `bootstrap`
           lambda_directory: target/aarch64-unknown-linux-gnu/release
           iam_role: ${{ secrets.AWS_IAM_ROLE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
 
 
 
