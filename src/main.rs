@@ -24,9 +24,9 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
     let path_parameters = event.path_parameters();
     println!("Path Parameters: {:?}", path_parameters.first("proxy"));
     let payload = if path_parameters.first("proxy") == Some("test") {
-        Some(Ok(helpers::test_helpers::create_mock_data_transfer_object()))
+        Some(helpers::test_helpers::create_mock_data_transfer_object())
     } else {
-        event.payload::<driving::data_transfer_object::DataTransferObject>()
+        event.payload::<driving::data_transfer_object::DataTransferObject>()?
     };
 
     println!("Payload: {:?}", payload);
