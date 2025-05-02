@@ -24,6 +24,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
     let method = event.method();
     let path_parameters = event.path_parameters();
     println!("Path Parameters: {:?}", path_parameters.first("proxy"));
+    println!("Event body: {:?}", event.body());
 
     enum PayloadType {
         Test(DataTransferObject),
