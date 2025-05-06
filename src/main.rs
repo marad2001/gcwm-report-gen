@@ -1,5 +1,7 @@
 use driving::data_transfer_object::{self, DataTransferObject};
 use lambda_http::{ext::PayloadError, http::{Response, StatusCode}, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
+use tracing::{info, warn, error, instrument};
+use tracing_subscriber::{fmt, EnvFilter};
 use serde_json::{error::Category, json};
 use http::Method;
 use dotenv::dotenv;
@@ -13,14 +15,23 @@ mod helpers;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    // need to add in tracing    
+    
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .json()
+        .with_span_events(fmt::format::FmtSpan::ENTER | fmt::format::FmtSpan::EXIT)
+        .init();
+
     run(service_fn(function_handler)).await
 }
 
+#[instrument(skip(event))]
 pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error> {
 
     dotenv().ok();
     
+    info!(method = %event.method(), path = %event.uri(), "received request");
+
     let method = event.method();
     let path_parameters = event.path_parameters();
     println!("Path Parameters: {:?}", path_parameters.first("proxy"));
@@ -36,9 +47,11 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
     } else {
         match event.payload::<driving::data_transfer_object::DataTransferObject>() {
             Ok(payload) => {
+                info!(payload = ?payload, "deserialized request payload");
                 PayloadType::Production(Ok(payload))
             }
             Err(payload_error) => {
+                error!(error = ?payload_error, "failed to deserialize request");
                 PayloadType::Production(Err(payload_error))
             }
         }
