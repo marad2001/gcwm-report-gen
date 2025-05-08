@@ -20,4 +20,5 @@ regex = "1.11.1"
 num-format = "0.4.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"] }
-openssl = { version = "0.10", features = ["vendored"] }
+aws-config = "1.6.2"
+aws-sdk-dynamodb = "1.73.0"

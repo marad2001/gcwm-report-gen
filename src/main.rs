@@ -1,3 +1,5 @@
+use domain::report::investment_holdings::InvestmentPortfolio;
+use driven::repository::{dynamo_db::{self, InvestmentPortfolioDynamoDbRepo}, InvestmentPortfoliosRepository};
 use driving::data_transfer_object::{self, DataTransferObject};
 use lambda_http::{ext::PayloadError, http::{Response, StatusCode}, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
 use tracing::{info, warn, error, instrument};
@@ -5,7 +7,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 use serde_json::{error::Category, json};
 use http::Method;
 use dotenv::dotenv;
-use std::env;
+use std::sync::Arc;
 
 mod domain;
 mod driven;
@@ -15,18 +17,31 @@ mod helpers;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    
+
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .json()
         .with_span_events(fmt::format::FmtSpan::ENTER | fmt::format::FmtSpan::EXIT)
         .init();
 
-    run(service_fn(function_handler)).await
+    let dynamo_db_repo = InvestmentPortfolioDynamoDbRepo::new().await;
+    let dynamo_db_repo = Arc::new(dynamo_db_repo);
+
+    run(service_fn( move |request: Request| {
+        let dynamo_db_repo = dynamo_db_repo.clone();
+        async move { function_handler(request, dynamo_db_repo).await }
+    }))
+    .await
 }
 
 #[instrument(skip(event))]
-pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error> {
+pub async fn function_handler<R>(
+    event: Request, 
+    investment_portfolio_repo: Arc<R>
+) -> Result<impl IntoResponse, Error> 
+where 
+    R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Send + Sync + 'static + std::fmt::Debug,
+{
 
     dotenv().ok();
     
@@ -34,8 +49,6 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
 
     let method = event.method();
     let path_parameters = event.path_parameters();
-    println!("Path Parameters: {:?}", path_parameters.first("proxy"));
-    println!("Event body: {:?}", event.body());
 
     enum PayloadType {
         Test(DataTransferObject),
@@ -72,7 +85,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
                 match payload {
                     PayloadType::Test(data_transfer_object) => {
             
-                        let report = domain::report::create_report::create_report(data_transfer_object.report_type);
+                        let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
 
                         let response = Response::builder()
                             .status(StatusCode::OK)
@@ -90,7 +103,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
                             Ok(data_transfer_object) => {
                                 match data_transfer_object {
                                     Some(data_transfer_object) => {
-                                        let report = domain::report::create_report::create_report(data_transfer_object.report_type);
+                                        let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
         
                                         let response = Response::builder()
                                             .status(StatusCode::OK)

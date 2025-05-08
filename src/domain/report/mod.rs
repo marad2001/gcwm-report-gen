@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
+use investment_holdings::InvestmentPortfolio;
 use report_type::ReportType;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use thiserror::Error;
 
+use crate::driven::repository::InvestmentPortfoliosRepository;
+use crate::driving::data_transfer_object::report_type_data_transfer_object::ReportTypeDataTransferObject;
+
 use super::DomainError;
-use super::traits::ValidatableReport;
 
 pub mod create_report;
 pub mod report_type;
@@ -45,12 +50,14 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn new<T: ValidatableReport>(report_data: T) -> Result<Self, ReportError> {
-        
-        report_data.validate_data_transfer_object_data()?;
+    pub async fn new<R>(
+        report_data: ReportTypeDataTransferObject, 
+        investment_portfolio_repo: Arc<R>
+    ) -> Result<Self, ReportError> where R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync {
+
         Ok(Self {
             id: Uuid::new_v4(),
-            report_type: report_data.into_report_type()?,
+            report_type: ReportType::from_dto(report_data, investment_portfolio_repo).await?
         })
 
     }

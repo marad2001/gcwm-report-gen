@@ -5,10 +5,12 @@ use serde::{Deserialize, Serialize};
 use crate::domain::constrained_types::name_string::NameString; 
 use crate::domain::constrained_types::tax_year;
 use crate::domain::report::advice_areas::{AdviceArea, OtherAdvice};
+use crate::domain::report::investment_holdings::InvestmentPortfolio;
 use crate::domain::report::objectives::{self, CoupleObjectivesAnnualReview, ObjectiveType};
 use crate::domain::report::product::{AccountOrReferenceNumberType, AccountType, CanBeJointlyOwnedAccountType, ExistingJointlyOwnedProduct, ExistingNewJointSingleProduct, ExistingProduct, NewProduct, PlatformAccountNumberType, ProductRetention, Provider, Providers, RecommendedAction, Replace, SingleContribution};
 use crate::domain::report::recommendations_section::{AdviceAreasAndProducts, CoupleAdviceAreasAndProducts};
 use crate::domain::report::{advice_areas, ReportError};
+use crate::driven::repository::InvestmentPortfoliosRepository;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::advice_areas_and_products_dto::CoupleAdviceAreasAndProductsDto;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -19,14 +21,15 @@ pub struct CoupleAnnualReviewReportRecommendationsSection {
 }
 
 impl CoupleAnnualReviewReportRecommendationsSection {
-    pub fn new(
+    pub async fn new<R>(
         client_1_first_name: &NameString,
         client_2_first_name: &NameString,
         client_1_last_name: &NameString,
         client_2_last_name: &NameString,
         unvalidated_couple_advice_areas_products: CoupleAdviceAreasAndProductsDto,
         objectives: &CoupleObjectivesAnnualReview,
-    ) -> Result<CoupleAnnualReviewReportRecommendationsSection, (String, String)> {
+        repo: &R
+    ) -> Result<CoupleAnnualReviewReportRecommendationsSection, (String, String)> where R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync  {
 
         let error_section_string = "Recommendations".to_string();
 
@@ -36,7 +39,7 @@ impl CoupleAnnualReviewReportRecommendationsSection {
 
         let objectives_by_id = objectives.objectives_by_id();
         let introductory_paragraph = String::from("This section will present my recommendations for each of your accounts, as well as other advice areas we discussed and those I have subsequently reviewed.");
-        let validated_couple_advice_areas_and_products = CoupleAdviceAreasAndProducts::try_from(unvalidated_couple_advice_areas_products).map_err(|error| (error_section_string.to_string(), error))?;
+        let validated_couple_advice_areas_and_products = CoupleAdviceAreasAndProducts::from_dto(unvalidated_couple_advice_areas_products, repo).await.map_err(|error| (error_section_string.to_string(), error))?;
         let client_1_advice_area_products = validated_couple_advice_areas_and_products.client_1;
         let client_2_advice_area_products = validated_couple_advice_areas_and_products.client_2;
         let joint_advice_area_products = validated_couple_advice_areas_and_products.joint;

@@ -3,13 +3,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::driving::data_transfer_object::report_type_data_transfer_object::risk_assessment_dto::RiskProfileDto;
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum RiskProfile {
     Cautious,
     CautiousToModerate,
     Moderate,
     ModerateToAdventurous,
     Adventurous
+}
+
+impl Default for RiskProfile {
+    fn default() -> Self {
+        Self::Cautious
+    }
 }
 
 impl TryFrom<RiskProfileDto> for RiskProfile {

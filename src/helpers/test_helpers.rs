@@ -2,7 +2,7 @@ use std::num::NonZeroU128;
 
 use uuid::Uuid;
 
-use crate::driving::data_transfer_object::{
+use crate::{domain::{find_model_portfolio::find_one_model_portfolio, report::investment_holdings::InvestmentPortfolio}, driven::repository::InvestmentPortfoliosRepository, driving::data_transfer_object::{
     report_type_data_transfer_object::{
         advice_areas::{AdviceAreaDto, AdviceAreasDto, EmergencyFundAdvice, IhtAdvice, PoaAdvice, WillAdvice}, advice_areas_and_products_dto::{AdviceAreasAndProductsDto, CoupleAdviceAreasAndProductsDto}, adviser_data_transfer_object::AdviserDataTransferObject, background_section_data_transfer_objects::{
             AdditionalCompanyMeetingAttendeeDataTransferObject, 
@@ -13,7 +13,7 @@ use crate::driving::data_transfer_object::{
         }, current_circumstances_section_dto::{
             ChangeInCircumstancesDto, CoupleIsChangeRiskToleranceDto, IsChangeInCircumstancesDto, IsChangeRiskToleranceDto
         }, investment_holdings::{
-            FundHoldingDto, GCWMPastInvestmentStrategyDto, GCWMPresentInvestmentStrategyDto, InvestableInvestmentStrategyDto, InvestmentPortfolioDto, InvestmentStrategyDto, PastInvestmentStrategyDto, StrategyMonthYearDto
+            FundHoldingDto, InvestmentPortfolioDto, InvestmentStrategyDto, InvestmentStrategyProductTypeDto, InvestmentStrategyProviderDto, InvestmentStrategyServicePropositionDto, ModelPortfolioIdDto, MonthYearDto, VersionedPortfolioDto
         }, objectives_dto::{
             ChangeInObjectivesDto, ClientFromAgeDto, CoupleIncomeObjectiveDto, CoupleObjectivesAnnualReviewDto, IncomeObjectiveDto, ObjectiveTypeDto
         }, product::{
@@ -21,8 +21,7 @@ use crate::driving::data_transfer_object::{
         }, risk_assessment_dto::RiskProfileDto, ReportTypeDataTransferObject
     }, 
     DataTransferObject
-};
-
+}};
 
 
 pub fn create_mock_data_transfer_object() -> DataTransferObject {
@@ -108,49 +107,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                             IsaStocksAndSharesDto {
                                                 provider: ProviderDto::new(ProvidersDto::Transact),
                                                 optional_description: None,
-                                                current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                    PastInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                        GCWMPastInvestmentStrategyDto::TransactPrimeModerateToAdventurous(
-                                                            StrategyMonthYearDto::Aug24(InvestmentPortfolioDto {
-                                                                risk_level: RiskProfileDto::Moderate,
-                                                                fund_holdings: vec![
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Aberdeen Angus".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.45
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Stewart Investors".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.56
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Veritas Asian".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.76
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.35
-                                                                    },
-                                                                ],
-                                                                fund_charges: None
-                                                            })
-                                                        )
-                                                    )
+                                                current_investment_strategy: InvestmentStrategyDto::Model(
+                                                    VersionedPortfolioDto {
+                                                        id: ModelPortfolioIdDto {
+                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                            sri: false,
+                                                            risk_profile: RiskProfileDto::Moderate,
+                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                        },
+                                                        effective_date: MonthYearDto::Aug24,
+                                                    }
                                                 ),
                                                 current_value: ValuationDto {
                                                     value: 29605.25,
@@ -192,51 +159,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                         },
                                                         recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                             rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                            recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                InvestableInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                    GCWMPresentInvestmentStrategyDto::TransactPrimeModerate(
-                                                                        StrategyMonthYearDto::Aug24(
-                                                                            InvestmentPortfolioDto {
-                                                                                risk_level: RiskProfileDto::Moderate,
-                                                                                fund_holdings: vec![
-                                                                                    FundHoldingDto { 
-                                                                                        fund_name: "Aberdeen Angus".to_string(),  
-                                                                                        isin: None,
-                                                                                        sedol: None,
-                                                                                        value: None,
-                                                                                        percentage_of_portfolio: Some(0.25),
-                                                                                        fund_charge: 0.45
-                                                                                    },
-                                                                                    FundHoldingDto { 
-                                                                                        fund_name: "Stewart Investors".to_string(),  
-                                                                                        isin: None,
-                                                                                        sedol: None,
-                                                                                        value: None,
-                                                                                        percentage_of_portfolio: Some(0.25),
-                                                                                        fund_charge: 0.56
-                                                                                    },
-                                                                                    FundHoldingDto { 
-                                                                                        fund_name: "Veritas Asian".to_string(),  
-                                                                                        isin: None,
-                                                                                        sedol: None,
-                                                                                        value: None,
-                                                                                        percentage_of_portfolio: Some(0.25),
-                                                                                        fund_charge: 0.76
-                                                                                    },
-                                                                                    FundHoldingDto { 
-                                                                                        fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                        isin: None,
-                                                                                        sedol: None,
-                                                                                        value: None,
-                                                                                        percentage_of_portfolio: Some(0.25),
-                                                                                        fund_charge: 0.35
-                                                                                    },
-                                                                                ],
-                                                                                fund_charges: None
-                                                                            }
-                                                                        )
-                                                                    )
-                                                                )
+                                                            recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                VersionedPortfolioDto {
+                                                                    id: ModelPortfolioIdDto {
+                                                                        provider: InvestmentStrategyProviderDto::Transact,
+                                                                        service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                        sri: false,
+                                                                        risk_profile: RiskProfileDto::Moderate,
+                                                                        product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                    },
+                                                                    effective_date: MonthYearDto::Aug24,
+                                                                }
                                                             ),
                                                         }),
                                                         linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()],
@@ -256,49 +189,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                             IsaStocksAndSharesDto {
                                                 provider: ProviderDto::new(ProvidersDto::Transact),
                                                 optional_description: Some("New ISA".to_string()),
-                                                current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                    PastInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                        GCWMPastInvestmentStrategyDto::TransactPrimeModerateToAdventurous(
-                                                            StrategyMonthYearDto::Aug24(InvestmentPortfolioDto {
-                                                                risk_level: RiskProfileDto::Moderate,
-                                                                fund_holdings: vec![
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Aberdeen Angus".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.45
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Stewart Investors".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.56
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Veritas Asian".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.76
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.35
-                                                                    },
-                                                                ],
-                                                                fund_charges: None
-                                                            })
-                                                        )
-                                                    )
+                                                current_investment_strategy: InvestmentStrategyDto::Model(
+                                                    VersionedPortfolioDto {
+                                                        id: ModelPortfolioIdDto {
+                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                            sri: false,
+                                                            risk_profile: RiskProfileDto::Moderate,
+                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                        },
+                                                        effective_date: MonthYearDto::Aug24,
+                                                    }
                                                 ),
                                                 current_value: ValuationDto { value: 67347.83, date_of_valuation: "11/02/2025".to_string() },
                                                 linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberTypeDto::Transact("IH00564856".to_string()),
@@ -338,51 +239,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                             }, 
                                                             recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                                 rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                                recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                    InvestableInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                        GCWMPresentInvestmentStrategyDto::TransactPrimeModerate(
-                                                                            StrategyMonthYearDto::Aug24(
-                                                                                InvestmentPortfolioDto {
-                                                                                    risk_level: RiskProfileDto::Moderate,
-                                                                                    fund_holdings: vec![
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Aberdeen Angus".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.45
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Stewart Investors".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.56
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Veritas Asian".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.76
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.35
-                                                                                        },
-                                                                                    ],
-                                                                                    fund_charges: None
-                                                                                }
-                                                                            )
-                                                                        )
-                                                                    )
+                                                                recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                    VersionedPortfolioDto {
+                                                                        id: ModelPortfolioIdDto {
+                                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                            sri: false,
+                                                                            risk_profile: RiskProfileDto::Moderate,
+                                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                        },
+                                                                        effective_date: MonthYearDto::Aug24,
+                                                                    }
                                                                 ),
                                                             }),
                                                             linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()], 
@@ -420,47 +287,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                             IsaStocksAndSharesDto {
                                                 provider: ProviderDto::new(ProvidersDto::Fidelity),
                                                 optional_description: None,
-                                                current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                    PastInvestmentStrategyDto::BespokeInvestmentStrategy(
-                                                        InvestmentPortfolioDto {
-                                                            risk_level: RiskProfileDto::Moderate,
-                                                            fund_holdings: vec![
-                                                                FundHoldingDto { 
-                                                                    fund_name: "Aberdeen Angus".to_string(),  
-                                                                    isin: None,
-                                                                    sedol: None,
-                                                                    value: None,
-                                                                    percentage_of_portfolio: Some(0.10),
-                                                                    fund_charge: 0.45
-                                                                },
-                                                                FundHoldingDto { 
-                                                                    fund_name: "Stewart Investors".to_string(),  
-                                                                    isin: None,
-                                                                    sedol: None,
-                                                                    value: None,
-                                                                    percentage_of_portfolio: Some(0.10),
-                                                                    fund_charge: 0.56
-                                                                },
-                                                                FundHoldingDto { 
-                                                                    fund_name: "Veritas Asian".to_string(),  
-                                                                    isin: None,
-                                                                    sedol: None,
-                                                                    value: None,
-                                                                    percentage_of_portfolio: Some(0.40),
-                                                                    fund_charge: 0.76
-                                                                },
-                                                                FundHoldingDto { 
-                                                                    fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                    isin: None,
-                                                                    sedol: None,
-                                                                    value: None,
-                                                                    percentage_of_portfolio: Some(0.40),
-                                                                    fund_charge: 0.35
-                                                                },
-                                                            ],
-                                                            fund_charges: None
-                                                        }
-                                                    )
+                                                current_investment_strategy: InvestmentStrategyDto::Model(
+                                                    VersionedPortfolioDto {
+                                                        id: ModelPortfolioIdDto {
+                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                            sri: false,
+                                                            risk_profile: RiskProfileDto::Moderate,
+                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                        },
+                                                        effective_date: MonthYearDto::Aug24,
+                                                    }
                                                 ),
                                                 current_value: ValuationDto { value: 21045.75, date_of_valuation: "11/02/2025".to_string() },
                                                 linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberTypeDto::Other("WHIX015879".to_string()),
@@ -482,47 +319,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                             }, 
                                                             recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                                 rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                                recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                    InvestableInvestmentStrategyDto::BespokeInvestmentStrategy(
-                                                                        InvestmentPortfolioDto {
-                                                                            risk_level: RiskProfileDto::Moderate,
-                                                                            fund_holdings: vec![
-                                                                                FundHoldingDto { 
-                                                                                    fund_name: "Aberdeen Angus".to_string(),  
-                                                                                    isin: None,
-                                                                                    sedol: None,
-                                                                                    value: None,
-                                                                                    percentage_of_portfolio: Some(0.10),
-                                                                                    fund_charge: 0.45
-                                                                                },
-                                                                                FundHoldingDto { 
-                                                                                    fund_name: "Stewart Investors".to_string(),  
-                                                                                    isin: None,
-                                                                                    sedol: None,
-                                                                                    value: None,
-                                                                                    percentage_of_portfolio: Some(0.10),
-                                                                                    fund_charge: 0.56
-                                                                                },
-                                                                                FundHoldingDto { 
-                                                                                    fund_name: "Veritas Asian".to_string(),  
-                                                                                    isin: None,
-                                                                                    sedol: None,
-                                                                                    value: None,
-                                                                                    percentage_of_portfolio: Some(0.40),
-                                                                                    fund_charge: 0.76
-                                                                                },
-                                                                                FundHoldingDto { 
-                                                                                    fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                    isin: None,
-                                                                                    sedol: None,
-                                                                                    value: None,
-                                                                                    percentage_of_portfolio: Some(0.40),
-                                                                                    fund_charge: 0.35
-                                                                                },
-                                                                            ],
-                                                                            fund_charges: None
-                                                                        }
-                                                                    )
+                                                                recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                    VersionedPortfolioDto {
+                                                                        id: ModelPortfolioIdDto {
+                                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                            sri: false,
+                                                                            risk_profile: RiskProfileDto::Moderate,
+                                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                        },
+                                                                        effective_date: MonthYearDto::Aug24,
+                                                                    }
                                                                 ),
                                                             }),
                                                             linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()], 
@@ -543,49 +350,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                             IsaStocksAndSharesDto {
                                                 provider: ProviderDto::new(ProvidersDto::Quilter),
                                                 optional_description: None,
-                                                current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                    PastInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                        GCWMPastInvestmentStrategyDto::TransactPrimeModerateToAdventurous(
-                                                            StrategyMonthYearDto::Aug24(InvestmentPortfolioDto {
-                                                                risk_level: RiskProfileDto::Moderate,
-                                                                fund_holdings: vec![
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Aberdeen Angus".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.45
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Stewart Investors".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.56
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Veritas Asian".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.76
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.35
-                                                                    },
-                                                                ],
-                                                                fund_charges: None
-                                                            })
-                                                        )
-                                                    )
+                                                current_investment_strategy: InvestmentStrategyDto::Model(
+                                                    VersionedPortfolioDto {
+                                                        id: ModelPortfolioIdDto {
+                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                            sri: false,
+                                                            risk_profile: RiskProfileDto::Moderate,
+                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                        },
+                                                        effective_date: MonthYearDto::Aug24,
+                                                    }
                                                 ),
                                                 current_value: ValuationDto { value: 76241.58, date_of_valuation: "11/02/2025".to_string() },
                                                 linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberTypeDto::Other("AC25087900-002".to_string()),
@@ -607,51 +382,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                             }, 
                                                             recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                                 rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                                recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                    InvestableInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                        GCWMPresentInvestmentStrategyDto::TransactPrimeModerate(
-                                                                            StrategyMonthYearDto::Aug24(
-                                                                                InvestmentPortfolioDto {
-                                                                                    risk_level: RiskProfileDto::Moderate,
-                                                                                    fund_holdings: vec![
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Aberdeen Angus".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.45
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Stewart Investors".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.56
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Veritas Asian".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.76
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.35
-                                                                                        },
-                                                                                    ],
-                                                                                    fund_charges: None
-                                                                                }
-                                                                            )
-                                                                        )
-                                                                    )
+                                                                recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                    VersionedPortfolioDto {
+                                                                        id: ModelPortfolioIdDto {
+                                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                            sri: false,
+                                                                            risk_profile: RiskProfileDto::Moderate,
+                                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                        },
+                                                                        effective_date: MonthYearDto::Aug24,
+                                                                    }
                                                                 ),
                                                             }),
                                                             linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()], 
@@ -672,49 +413,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                             SelfInvestedPersonalPensionDto {
                                                 provider: ProviderDto::new(ProvidersDto::JamesHay),
                                                 optional_description: None,
-                                                current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                    PastInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                        GCWMPastInvestmentStrategyDto::TransactPrimeModerateToAdventurous(
-                                                            StrategyMonthYearDto::Aug24(InvestmentPortfolioDto {
-                                                                risk_level: RiskProfileDto::Moderate,
-                                                                fund_holdings: vec![
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Aberdeen Angus".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.45
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Stewart Investors".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.56
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Veritas Asian".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.76
-                                                                    },
-                                                                    FundHoldingDto { 
-                                                                        fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                        isin: None,
-                                                                        sedol: None,
-                                                                        value: None,
-                                                                        percentage_of_portfolio: Some(0.25),
-                                                                        fund_charge: 0.35
-                                                                    },
-                                                                ],
-                                                                fund_charges: None
-                                                            })
-                                                        )
-                                                    )
+                                                current_investment_strategy: InvestmentStrategyDto::Model(
+                                                    VersionedPortfolioDto {
+                                                        id: ModelPortfolioIdDto {
+                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                            sri: false,
+                                                            risk_profile: RiskProfileDto::Moderate,
+                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                        },
+                                                        effective_date: MonthYearDto::Aug24,
+                                                    }
                                                 ),
                                                 current_value: ValuationDto { value: 753799.41, date_of_valuation: "11/02/2025".to_string() },
                                                 linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberTypeDto::Other("578970244765".to_string()),
@@ -736,51 +445,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                             }, 
                                                             recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                                 rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                                recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                    InvestableInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                        GCWMPresentInvestmentStrategyDto::TransactPrimeModerate(
-                                                                            StrategyMonthYearDto::Aug24(
-                                                                                InvestmentPortfolioDto {
-                                                                                    risk_level: RiskProfileDto::Moderate,
-                                                                                    fund_holdings: vec![
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Aberdeen Angus".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.45
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Stewart Investors".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.56
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Veritas Asian".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.76
-                                                                                        },
-                                                                                        FundHoldingDto { 
-                                                                                            fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                            isin: None,
-                                                                                            sedol: None,
-                                                                                            value: None,
-                                                                                            percentage_of_portfolio: Some(0.25),
-                                                                                            fund_charge: 0.35
-                                                                                        },
-                                                                                    ],
-                                                                                    fund_charges: None
-                                                                                }
-                                                                            )
-                                                                        )
-                                                                    )
+                                                                recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                    VersionedPortfolioDto {
+                                                                        id: ModelPortfolioIdDto {
+                                                                            provider: InvestmentStrategyProviderDto::Transact,
+                                                                            service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                            sri: false,
+                                                                            risk_profile: RiskProfileDto::Moderate,
+                                                                            product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                        },
+                                                                        effective_date: MonthYearDto::Aug24,
+                                                                    }
                                                                 ),
                                                             }),
                                                             linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()], 
@@ -808,49 +483,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                     IsaStocksAndSharesDto {
                                                         provider: ProviderDto::new(ProvidersDto::Transact),
                                                         optional_description: Some("New ISA".to_string()),
-                                                        current_investment_strategy: InvestmentStrategyDto::PastInvestmentStrategy(
-                                                            PastInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                GCWMPastInvestmentStrategyDto::TransactPrimeModerateToAdventurous(
-                                                                    StrategyMonthYearDto::Aug24(InvestmentPortfolioDto {
-                                                                        risk_level: RiskProfileDto::Moderate,
-                                                                        fund_holdings: vec![
-                                                                            FundHoldingDto { 
-                                                                                fund_name: "Aberdeen Angus".to_string(),  
-                                                                                isin: None,
-                                                                                sedol: None,
-                                                                                value: None,
-                                                                                percentage_of_portfolio: Some(0.25),
-                                                                                fund_charge: 0.45
-                                                                            },
-                                                                            FundHoldingDto { 
-                                                                                fund_name: "Stewart Investors".to_string(),  
-                                                                                isin: None,
-                                                                                sedol: None,
-                                                                                value: None,
-                                                                                percentage_of_portfolio: Some(0.25),
-                                                                                fund_charge: 0.56
-                                                                            },
-                                                                            FundHoldingDto { 
-                                                                                fund_name: "Veritas Asian".to_string(),  
-                                                                                isin: None,
-                                                                                sedol: None,
-                                                                                value: None,
-                                                                                percentage_of_portfolio: Some(0.25),
-                                                                                fund_charge: 0.76
-                                                                            },
-                                                                            FundHoldingDto { 
-                                                                                fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                isin: None,
-                                                                                sedol: None,
-                                                                                value: None,
-                                                                                percentage_of_portfolio: Some(0.25),
-                                                                                fund_charge: 0.35
-                                                                            },
-                                                                        ],
-                                                                        fund_charges: None
-                                                                    })
-                                                                )
-                                                            )
+                                                        current_investment_strategy: InvestmentStrategyDto::Model(
+                                                            VersionedPortfolioDto {
+                                                                id: ModelPortfolioIdDto {
+                                                                    provider: InvestmentStrategyProviderDto::Transact,
+                                                                    service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                    sri: false,
+                                                                    risk_profile: RiskProfileDto::Moderate,
+                                                                    product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                },
+                                                                effective_date: MonthYearDto::Aug24,
+                                                            }
                                                         ),
                                                         current_value: ValuationDto { value: 46483.78, date_of_valuation: "11/02/2025".to_string() },
                                                         linked_cash_or_fee_payment_wrapper: AccountOrReferenceNumberTypeDto::Transact("IH00754896".to_string()),
@@ -890,51 +533,17 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
                                                                     }, 
                                                                     recommended_investment_strategy: RealignOrRebalanceDto::Rebalance(RebalanceDto {
                                                                         rationale: "The existing fund and asset allocation selection still remains suitable and as such I recommend rebalancing the portfolio to avoid portfolio drift which can result in your investment falling out of line with your risk profile.".to_string(),
-                                                                        recommended_investment_strategy: InvestmentStrategyDto::InvestableInvestmentStrategy(
-                                                                            InvestableInvestmentStrategyDto::GCWMInvestmentStrategy(
-                                                                                GCWMPresentInvestmentStrategyDto::TransactPrimeModerate(
-                                                                                    StrategyMonthYearDto::Aug24(
-                                                                                        InvestmentPortfolioDto {
-                                                                                            risk_level: RiskProfileDto::Moderate,
-                                                                                            fund_holdings: vec![
-                                                                                                FundHoldingDto { 
-                                                                                                    fund_name: "Aberdeen Angus".to_string(),  
-                                                                                                    isin: None,
-                                                                                                    sedol: None,
-                                                                                                    value: None,
-                                                                                                    percentage_of_portfolio: Some(0.25),
-                                                                                                    fund_charge: 0.45
-                                                                                                },
-                                                                                                FundHoldingDto { 
-                                                                                                    fund_name: "Stewart Investors".to_string(),  
-                                                                                                    isin: None,
-                                                                                                    sedol: None,
-                                                                                                    value: None,
-                                                                                                    percentage_of_portfolio: Some(0.25),
-                                                                                                    fund_charge: 0.56
-                                                                                                },
-                                                                                                FundHoldingDto { 
-                                                                                                    fund_name: "Veritas Asian".to_string(),  
-                                                                                                    isin: None,
-                                                                                                    sedol: None,
-                                                                                                    value: None,
-                                                                                                    percentage_of_portfolio: Some(0.25),
-                                                                                                    fund_charge: 0.76
-                                                                                                },
-                                                                                                FundHoldingDto { 
-                                                                                                    fund_name: "Man GLG Japan Core Alpha".to_string(),  
-                                                                                                    isin: None,
-                                                                                                    sedol: None,
-                                                                                                    value: None,
-                                                                                                    percentage_of_portfolio: Some(0.25),
-                                                                                                    fund_charge: 0.35
-                                                                                                },
-                                                                                            ],
-                                                                                            fund_charges: None
-                                                                                        }
-                                                                                    )
-                                                                                )
-                                                                            )
+                                                                        recommended_investment_strategy: InvestmentStrategyDto::Model(
+                                                                            VersionedPortfolioDto {
+                                                                                id: ModelPortfolioIdDto {
+                                                                                    provider: InvestmentStrategyProviderDto::Transact,
+                                                                                    service_proposition: InvestmentStrategyServicePropositionDto::Prime,
+                                                                                    sri: false,
+                                                                                    risk_profile: RiskProfileDto::Moderate,
+                                                                                    product_type: InvestmentStrategyProductTypeDto::Standard,  
+                                                                                },
+                                                                                effective_date: MonthYearDto::Aug24,
+                                                                            }
                                                                         ),
                                                                     }),
                                                                     linked_objectives: vec!["7f88927c-6da3-429e-aa7a-8600d94399e6".to_string()], 
@@ -981,3 +590,48 @@ pub fn create_mock_data_transfer_object() -> DataTransferObject {
         )
     }
 }
+
+
+
+
+//             MonthYearDto::Aug24(InvestmentPortfolioDto {
+                                                //                 risk_level: RiskProfileDto::Moderate,
+                                                //                 fund_holdings: vec![
+                                                //                     FundHoldingDto { 
+                                                //                         fund_name: "Aberdeen Angus".to_string(),  
+                                                //                         isin: None,
+                                                //                         sedol: None,
+                                                //                         value: None,
+                                                //                         percentage_of_portfolio: Some(0.25),
+                                                //                         fund_charge: 0.45
+                                                //                     },
+                                                //                     FundHoldingDto { 
+                                                //                         fund_name: "Stewart Investors".to_string(),  
+                                                //                         isin: None,
+                                                //                         sedol: None,
+                                                //                         value: None,
+                                                //                         percentage_of_portfolio: Some(0.25),
+                                                //                         fund_charge: 0.56
+                                                //                     },
+                                                //                     FundHoldingDto { 
+                                                //                         fund_name: "Veritas Asian".to_string(),  
+                                                //                         isin: None,
+                                                //                         sedol: None,
+                                                //                         value: None,
+                                                //                         percentage_of_portfolio: Some(0.25),
+                                                //                         fund_charge: 0.76
+                                                //                     },
+                                                //                     FundHoldingDto { 
+                                                //                         fund_name: "Man GLG Japan Core Alpha".to_string(),  
+                                                //                         isin: None,
+                                                //                         sedol: None,
+                                                //                         value: None,
+                                                //                         percentage_of_portfolio: Some(0.25),
+                                                //                         fund_charge: 0.35
+                                                //                     },
+                                                //                 ],
+                                                //                 fund_charges: None
+                                                //             })
+                                                //         )
+                                                //     )
+                                                // ),

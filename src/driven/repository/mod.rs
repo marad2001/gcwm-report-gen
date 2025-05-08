@@ -1,12 +1,24 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::{domain::{constrained_types::client_id::ClientId, report::Report, traits::{ClientRepoId, Entity}}, main};
+pub mod dynamo_db;
+
+use crate::{domain::{constrained_types::client_id::ClientId, report::{investment_holdings::MonthYear, Report}, traits::Entity}, driving::data_transfer_object::report_type_data_transfer_object::{investment_holdings::{InvestmentStrategyProductTypeDto, InvestmentStrategyProviderDto, InvestmentStrategyServicePropositionDto, ModelPortfolioIdDto, MonthYearDto}, risk_assessment_dto::RiskProfileDto}, main};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FindReport {
     pub id: Option<String>,
     pub report: Report,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FindModelPortfolio {
+    pub provider: InvestmentStrategyProviderDto,       
+    pub service_proposition: InvestmentStrategyServicePropositionDto,         
+    pub sri: bool,                
+    pub risk_profile: RiskProfileDto,     
+    pub product_type: InvestmentStrategyProductTypeDto,
+    pub effective_date: MonthYearDto
 }
 
 // #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -141,7 +153,7 @@ pub enum RepoDeleteError {
 }
 
 #[async_trait]
-pub trait Repository<T, U> where T: Entity, U: ClientRepoId   {
+pub trait Repository<T, U> where T: Entity   {
 
     /// Insert the received entity in the persistence system
     async fn create(&self, report: T) -> Result<T, RepoCreateError>;
@@ -157,6 +169,8 @@ pub trait Repository<T, U> where T: Entity, U: ClientRepoId   {
 
     /// Delete one single record from the persistence system
     async fn delete(&self, id: &str) -> Result<(), RepoDeleteError>;
+
+    
     
 }
 
@@ -167,3 +181,11 @@ pub trait Repository<T, U> where T: Entity, U: ClientRepoId   {
 //     async fn get_clients_main_contact_address(id: T) -> Result<MainContactAddress, String>;
     
 // }
+
+#[async_trait]
+pub trait InvestmentPortfoliosRepository<R> where R: Entity   {
+    
+    /// Find and return on single model portfolio investment holdings from the persistence system
+    async fn find_one_model_portfolio(&self, model_portfolio: FindModelPortfolio) -> Result<R, RepoSelectError>;
+
+}

@@ -9,6 +9,7 @@ use crate::domain::constrained_types::abrdn_account_number::AbrdnAccountNumber;
 use crate::domain::constrained_types::abrdn_full_account_number::AbrdnFullAccountNumber;
 use crate::domain::constrained_types::abrdn_sipp_number::AbrdnSippNumber;
 use crate::domain::constrained_types::bank_account_numbers::{BankSortCode, BankAccountNumber};
+use crate::domain::constrained_types::retirement_age::InvalidAgeError;
 use crate::domain::constrained_types::transact_platform_number::TransactPlatformNumber;
 use crate::domain::constrained_types::transact_reference_number::TransactReferenceNumber;
 use crate::domain::constrained_types::{
@@ -28,7 +29,8 @@ use crate::domain::constrained_types::{
 };
 use crate::domain::constrained_types::date::Date;
 use crate::domain::constrained_types::tax_year::TaxYear;
-use super::investment_holdings::{FundHolding, InvestmentStrategy};
+use crate::driven::repository::InvestmentPortfoliosRepository;
+use super::investment_holdings::{FundHolding, InvestmentPortfolio, InvestmentStrategy};
 use super::risk_assessment::RiskProfile;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::product::*;
 
@@ -36,20 +38,26 @@ use crate::driving::data_transfer_object::report_type_data_transfer_object::prod
 pub struct Products(Vec<ExistingNewJointSingleProduct>);
 
 impl Products {
+
     pub fn value(&self) -> &Vec<ExistingNewJointSingleProduct> {
         &self.0
     }
-}
 
-impl TryFrom<ProductsDto> for Products {
-    type Error = String;
-
-    fn try_from(dto: ProductsDto) -> Result<Self, Self::Error> {
-        Ok(Products(dto.value().into_iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?))
+    pub async fn from_dto<R>(
+        dto: ProductsDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
+        let mut out = Vec::with_capacity(dto.value().len());
+        for item_dto in dto.value().iter().cloned() {
+            // await each conversion in turn, propagating errors
+            let product = ExistingNewJointSingleProduct::from_dto(item_dto, repo).await?;
+            out.push(product);
+        }
+        Ok(Products(out))
     }
-}
-
-impl Products {
 
     pub fn existing_products(&self) -> Vec<ExistingProduct> {
         self.0
@@ -375,21 +383,32 @@ pub enum ExistingNewJointSingleProduct {
     NewSingleOwnedProduct(NewSingleOwnedProduct),
 }
 
-impl TryFrom<ExistingNewJointSingleProductDto> for ExistingNewJointSingleProduct {
-    type Error = String;
+impl ExistingNewJointSingleProduct {
 
-    fn try_from(dto: ExistingNewJointSingleProductDto) -> Result<Self, Self::Error> {
-        match dto {
-            ExistingNewJointSingleProductDto::ExistingJointlyOwnedProduct(data) => {
-                Ok(ExistingNewJointSingleProduct::ExistingJointlyOwnedProduct(data.try_into()?))
+    pub async fn from_dto<R>(
+        dto: ExistingNewJointSingleProductDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
+        let product = match dto {
+            ExistingNewJointSingleProductDto::ExistingJointlyOwnedProduct(inner_dto) => {
+                // call the async constructor, await, propagate any error with `?`
+                let inner = ExistingJointlyOwnedProduct::from_dto(inner_dto, repo).await?;
+                Self::ExistingJointlyOwnedProduct(inner)
             }
-            ExistingNewJointSingleProductDto::ExistingSingleOwnedProduct(data) => {
-                Ok(ExistingNewJointSingleProduct::ExistingSingleOwnedProduct(data.try_into()?))
+            ExistingNewJointSingleProductDto::ExistingSingleOwnedProduct(inner_dto) => {
+                let inner = ExistingSingleOwnedProduct::from_dto(inner_dto, repo).await?;
+                Self::ExistingSingleOwnedProduct(inner)
             }
-            ExistingNewJointSingleProductDto::NewSingleOwnedProduct(data) => {
-                Ok(ExistingNewJointSingleProduct::NewSingleOwnedProduct(data.try_into()?))
+            ExistingNewJointSingleProductDto::NewSingleOwnedProduct(inner_dto) => {
+                let inner = NewSingleOwnedProduct::from_dto(inner_dto, repo).await?;
+                Self::NewSingleOwnedProduct(inner)
             }
-        }
+        };
+
+        Ok(product)
     }
 }
 
@@ -490,15 +509,20 @@ pub struct ExistingJointlyOwnedProduct {
     account_type: CanBeJointlyOwnedAccountType
 }
 
-impl TryFrom<ExistingJointlyOwnedProductDto> for ExistingJointlyOwnedProduct {
-    type Error = String;
+impl ExistingJointlyOwnedProduct {
 
-    fn try_from(dto: ExistingJointlyOwnedProductDto) -> Result<Self, Self::Error> {
+    pub async fn from_dto<R>(
+        dto: ExistingJointlyOwnedProductDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
         Ok(Self {
             id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
             platform_or_account_number: dto.platform_or_account_number.map(|dto|dto.try_into()).transpose()?,
             account_or_reference_number: dto.account_or_reference_number.try_into()?,
-            account_type: dto.account_type.try_into()?
+            account_type: CanBeJointlyOwnedAccountType::from_dto(dto.account_type, repo).await?
         })
     }
 }
@@ -580,16 +604,20 @@ pub struct ExistingSingleOwnedProduct {
     account_type: AccountType
 }
 
-impl TryFrom<ExistingSingleOwnedProductDto> for ExistingSingleOwnedProduct {
-    type Error = String;
+impl ExistingSingleOwnedProduct {
 
-    fn try_from(dto: ExistingSingleOwnedProductDto) -> Result<Self, Self::Error> {
+    pub async fn from_dto<R>(
+        dto: ExistingSingleOwnedProductDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
         Ok(Self {
             id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
             platform_or_account_number: dto.platform_or_account_number.map(|dto|dto.try_into()).transpose()?,
             account_or_reference_number: dto.account_or_reference_number.try_into()?,
-            account_type: dto.account_type.try_into()?
-
+            account_type: AccountType::from_dto(dto.account_type, repo).await?
         })
     }
 }
@@ -683,16 +711,21 @@ pub struct NewSingleOwnedProduct {
     recommendations: NewProductRecommendations
 }
 
-impl TryFrom<NewSingleOwnedProductDto> for NewSingleOwnedProduct {
-    type Error = String;
+impl NewSingleOwnedProduct {
 
-    fn try_from(dto: NewSingleOwnedProductDto) -> Result<Self, Self::Error> {
+    pub async fn from_dto<R>(
+        dto: NewSingleOwnedProductDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
         Ok(Self {
             id: Uuid::parse_str(&dto.id).map_err(|err|format!("Failed to parse UUID: {}", err))?,
             platform_or_account_number: dto.platform_or_account_number.map(|dto| dto.try_into()).transpose()?,
             account_or_reference_number: dto.account_or_reference_number.map(|dto|dto.try_into()).transpose()?,
-            account_type: dto.account_type.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            account_type: AccountType::from_dto(dto.account_type, repo).await?,
+            recommendations: NewProductRecommendations::from_dto(dto.recommendations, repo).await?
         })
     }
 }
@@ -767,15 +800,31 @@ pub enum CanBeJointlyOwnedAccountType {
     OffshoreInvestmentBond(OffshoreInvestmentBond),
 }
 
-impl TryFrom<CanBeJointlyOwnedAccountTypeDto> for CanBeJointlyOwnedAccountType {
-    type Error = String;
+impl CanBeJointlyOwnedAccountType {
 
-    fn try_from(dto: CanBeJointlyOwnedAccountTypeDto) -> Result<Self, Self::Error> {
-        match dto {
-            CanBeJointlyOwnedAccountTypeDto::GeneralInvestmentAccount(dto) => Ok(Self::GeneralInvestmentAccount(dto.try_into()?)),
-            CanBeJointlyOwnedAccountTypeDto::OnshoreInvestmentBond(dto) => Ok(Self::OnshoreInvestmentBond(dto.try_into()?)),
-            CanBeJointlyOwnedAccountTypeDto::OffshoreInvestmentBond(dto) => Ok(Self::OffshoreInvestmentBond(dto.try_into()?)),
-        }
+    pub async fn from_dto<R>(
+        dto: CanBeJointlyOwnedAccountTypeDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
+        Ok(
+            match dto {
+                CanBeJointlyOwnedAccountTypeDto::GeneralInvestmentAccount(inner_dto) => {
+                    let inner = GeneralInvestmentAccount::from_dto(inner_dto, repo).await?;
+                    CanBeJointlyOwnedAccountType::GeneralInvestmentAccount(inner)
+                } 
+                CanBeJointlyOwnedAccountTypeDto::OffshoreInvestmentBond(inner_dto) => {
+                    let inner = OffshoreInvestmentBond::from_dto(inner_dto, repo).await?;
+                    CanBeJointlyOwnedAccountType::OffshoreInvestmentBond(inner)
+                } 
+                CanBeJointlyOwnedAccountTypeDto::OnshoreInvestmentBond(inner_dto) => {
+                    let inner = OnshoreInvestmentBond::from_dto(inner_dto, repo).await?;
+                    CanBeJointlyOwnedAccountType::OnshoreInvestmentBond(inner)
+                } 
+            }
+        )
     }
 }
 
@@ -821,20 +870,68 @@ pub enum AccountType {
     OffshoreInvestmentBond(OffshoreInvestmentBond)
 }
 
-impl TryFrom<AccountTypeDto> for AccountType {
-    type Error = String;
+// impl TryFrom<AccountTypeDto> for AccountType {
+//     type Error = String;
 
-    fn try_from(dto: AccountTypeDto) -> Result<Self, Self::Error> {
-        match dto {
-            AccountTypeDto::IsaStocksAndShares(dto) => Ok(Self::IsaStocksAndShares(dto.try_into()?)),
-            AccountTypeDto::SelfInvestedPersonalPension(dto) => Ok(Self::SelfInvestedPersonalPension(dto.try_into()?)),
-            AccountTypeDto::PersonalPension(dto) => Ok(Self::PersonalPension(dto.try_into()?)),
-            AccountTypeDto::JuniorIsaStocksAndShares(dto) => Ok(Self::JuniorIsaStocksAndShares(dto.try_into()?)),
-            AccountTypeDto::CashIsa(dto) => Ok(Self::CashIsa(dto.try_into()?)),
-            AccountTypeDto::GeneralInvestmentAccount(dto) => Ok(Self::GeneralInvestmentAccount(dto.try_into()?)),
-            AccountTypeDto::OnshoreInvestmentBond(dto) => Ok(Self::OnshoreInvestmentBond(dto.try_into()?)),
-            AccountTypeDto::OffshoreInvestmentBond(dto) => Ok(Self::OffshoreInvestmentBond(dto.try_into()?)),
-        }
+//     fn try_from(dto: AccountTypeDto) -> Result<Self, Self::Error> {
+//         match dto {
+//             AccountTypeDto::IsaStocksAndShares(dto) => Ok(Self::IsaStocksAndShares(dto.try_into()?)),
+//             AccountTypeDto::SelfInvestedPersonalPension(dto) => Ok(Self::SelfInvestedPersonalPension(dto.try_into()?)),
+//             AccountTypeDto::PersonalPension(dto) => Ok(Self::PersonalPension(dto.try_into()?)),
+//             AccountTypeDto::JuniorIsaStocksAndShares(dto) => Ok(Self::JuniorIsaStocksAndShares(dto.try_into()?)),
+//             AccountTypeDto::CashIsa(dto) => Ok(Self::CashIsa(dto.try_into()?)),
+//             AccountTypeDto::GeneralInvestmentAccount(dto) => Ok(Self::GeneralInvestmentAccount(dto.try_into()?)),
+//             AccountTypeDto::OnshoreInvestmentBond(dto) => Ok(Self::OnshoreInvestmentBond(dto.try_into()?)),
+//             AccountTypeDto::OffshoreInvestmentBond(dto) => Ok(Self::OffshoreInvestmentBond(dto.try_into()?)),
+//         }
+//     }
+// }
+
+impl AccountType {
+
+    pub async fn from_dto<R>(
+        dto: AccountTypeDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
+        Ok(
+            match dto {
+                AccountTypeDto::IsaStocksAndShares(inner_dto) => {
+                    let inner = IsaStocksAndShares::from_dto(inner_dto, repo).await?;
+                    AccountType::IsaStocksAndShares(inner)
+                } 
+                AccountTypeDto::SelfInvestedPersonalPension(inner_dto) => {
+                    let inner = SelfInvestedPersonalPension::from_dto(inner_dto, repo).await?;
+                    AccountType::SelfInvestedPersonalPension(inner)
+                } 
+                AccountTypeDto::PersonalPension(inner_dto) => {
+                    let inner = PersonalPension::from_dto(inner_dto, repo).await?;
+                    AccountType::PersonalPension(inner)
+                } 
+                AccountTypeDto::JuniorIsaStocksAndShares(inner_dto) => {
+                    let inner = JuniorIsaStocksAndShares::from_dto(inner_dto, repo).await?;
+                    AccountType::JuniorIsaStocksAndShares(inner)
+                } 
+                AccountTypeDto::CashIsa(inner_dto) => {
+                    let inner = CashIsa::from_dto(inner_dto, repo).await?;
+                    AccountType::CashIsa(inner)
+                } 
+                AccountTypeDto::GeneralInvestmentAccount(inner_dto) => {
+                    let inner = GeneralInvestmentAccount::from_dto(inner_dto, repo).await?;
+                    AccountType::GeneralInvestmentAccount(inner)
+                } 
+                AccountTypeDto::OffshoreInvestmentBond(inner_dto) => {
+                    let inner = OffshoreInvestmentBond::from_dto(inner_dto, repo).await?;
+                    AccountType::OffshoreInvestmentBond(inner)
+                } 
+                AccountTypeDto::OnshoreInvestmentBond(inner_dto) => {
+                    let inner = OnshoreInvestmentBond::from_dto(inner_dto, repo).await?;
+                    AccountType::OnshoreInvestmentBond(inner)
+                } 
+            }
+        )
     }
 }
 
@@ -926,20 +1023,56 @@ pub struct IsaStocksAndShares {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<IsaStocksAndSharesDto> for IsaStocksAndShares {
+impl TryFrom<(IsaStocksAndSharesDto, InvestmentStrategy, ExistingProductRecommendations)> for IsaStocksAndShares {
     type Error = String;
 
-    fn try_from(dto: IsaStocksAndSharesDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            IsaStocksAndSharesDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl IsaStocksAndShares {
+
+    pub async fn from_dto<R>(
+        dto: IsaStocksAndSharesDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let sipp  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(sipp)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -956,22 +1089,58 @@ pub struct GeneralInvestmentAccount {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<GeneralInvestmentAccountDto> for GeneralInvestmentAccount {
+impl TryFrom<(GeneralInvestmentAccountDto, InvestmentStrategy, ExistingProductRecommendations)> for GeneralInvestmentAccount {
     type Error = String;
 
-    fn try_from(dto: GeneralInvestmentAccountDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            GeneralInvestmentAccountDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             ownership: dto.ownership.try_into()?,
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
             current_tax_position: dto.current_tax_position.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl GeneralInvestmentAccount {
+
+    pub async fn from_dto<R>(
+        dto: GeneralInvestmentAccountDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let gia  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(gia)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -988,22 +1157,58 @@ pub struct OnshoreInvestmentBond {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<OnshoreInvestmentBondDto> for OnshoreInvestmentBond {
+impl TryFrom<(OnshoreInvestmentBondDto, InvestmentStrategy, ExistingProductRecommendations)> for OnshoreInvestmentBond {
     type Error = String;
 
-    fn try_from(dto: OnshoreInvestmentBondDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            OnshoreInvestmentBondDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             ownership: dto.ownership.try_into()?,
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
             current_tax_position: dto.current_tax_position.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl OnshoreInvestmentBond {
+
+    pub async fn from_dto<R>(
+        dto: OnshoreInvestmentBondDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let onb  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(onb)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1020,22 +1225,58 @@ pub struct OffshoreInvestmentBond {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<OffshoreInvestmentBondDto> for OffshoreInvestmentBond {
+impl TryFrom<(OffshoreInvestmentBondDto, InvestmentStrategy, ExistingProductRecommendations)> for OffshoreInvestmentBond {
     type Error = String;
 
-    fn try_from(dto: OffshoreInvestmentBondDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            OffshoreInvestmentBondDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             ownership: dto.ownership.try_into()?,
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
             current_tax_position: dto.current_tax_position.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl OffshoreInvestmentBond {
+
+    pub async fn from_dto<R>(
+        dto: OffshoreInvestmentBondDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let offb  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(offb)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1050,20 +1291,56 @@ pub struct SelfInvestedPersonalPension {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<SelfInvestedPersonalPensionDto> for SelfInvestedPersonalPension {
+impl TryFrom<(SelfInvestedPersonalPensionDto, InvestmentStrategy, ExistingProductRecommendations)> for SelfInvestedPersonalPension {
     type Error = String;
 
-    fn try_from(dto: SelfInvestedPersonalPensionDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            SelfInvestedPersonalPensionDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl SelfInvestedPersonalPension {
+
+    pub async fn from_dto<R>(
+        dto: SelfInvestedPersonalPensionDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let sipp  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(sipp)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1078,20 +1355,56 @@ pub struct PersonalPension {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<PersonalPensionDto> for PersonalPension {
+impl TryFrom<(PersonalPensionDto, InvestmentStrategy, ExistingProductRecommendations)> for PersonalPension {
     type Error = String;
 
-    fn try_from(dto: PersonalPensionDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            PersonalPensionDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl PersonalPension {
+
+    pub async fn from_dto<R>(
+        dto: PersonalPensionDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let pp  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(pp)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1106,20 +1419,56 @@ pub struct JuniorIsaStocksAndShares {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<JuniorIsaStocksAndSharesDto> for JuniorIsaStocksAndShares {
+impl TryFrom<(JuniorIsaStocksAndSharesDto, InvestmentStrategy, ExistingProductRecommendations)> for JuniorIsaStocksAndShares {
     type Error = String;
 
-    fn try_from(dto: JuniorIsaStocksAndSharesDto) -> Result<Self, Self::Error> {
+    fn try_from((
+        dto, 
+        current_investment_strategy,
+        existing_product_recommendations): (
+            JuniorIsaStocksAndSharesDto, 
+            InvestmentStrategy, 
+            ExistingProductRecommendations
+        )) -> Result<Self, Self::Error> {
         Ok(Self {
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
-            current_investment_strategy: dto.current_investment_strategy.try_into()?,
+            current_investment_strategy: current_investment_strategy,
             current_value: dto.current_value.try_into()?,
             linked_cash_or_fee_payment_wrapper: dto.linked_cash_or_fee_payment_wrapper.try_into()?,
             charges: dto.charges.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl JuniorIsaStocksAndShares {
+
+    pub async fn from_dto<R>(
+        dto: JuniorIsaStocksAndSharesDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.current_investment_strategy.clone(), repo)
+            .await?;
+
+        let existing_product_recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let jisa  = (
+            dto,
+            investment_strategy,
+            existing_product_recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(jisa)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1133,19 +1482,44 @@ pub struct CashIsa {
     recommendations: ExistingProductRecommendations,
 }
 
-impl TryFrom<CashIsaDto> for CashIsa {
+impl TryFrom<(CashIsaDto, ExistingProductRecommendations)> for CashIsa {
     type Error = String;
 
-    fn try_from(dto: CashIsaDto) -> Result<Self, Self::Error> {
+    fn try_from((dto, existing_product_recommendations): (CashIsaDto, ExistingProductRecommendations)) -> Result<Self, Self::Error> {
         Ok(Self {
             provider: dto.provider.try_into()?,
             optional_description: dto.optional_description.map(|dto| dto.try_into()).transpose()?,
             account_number: dto.account_number.try_into()?,
             sort_code: dto.sort_code.try_into()?,
             current_value: dto.current_value.try_into()?,
-            recommendations: dto.recommendations.try_into()?
+            recommendations: existing_product_recommendations
         })
     }
+}
+
+impl CashIsa {
+
+    pub async fn from_dto<R>(
+        dto: CashIsaDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync
+    {
+        let recommendations = ExistingProductRecommendations::from_dto(dto.recommendations.clone(), repo)
+            .await?;
+
+        let jisa  = (
+            dto,
+            recommendations
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(jisa)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
@@ -1300,26 +1674,26 @@ impl TryFrom<CurrentProductTaxPositionDto> for CurrentProductTaxPosition {
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ExistingProductRecommendations {
-    //recommended_product_charges: ProductCharges,
     product_retention: ProductRetention,
-    //recommended_investment_strategy: InvestableInvestmentStrategy,
-    //linked_objectives: Vec<Uuid>,
-    //recommendation_actions: Vec<RecommendedAction>
 }
 
-impl TryFrom<ExistingProductRecommendationsDto> for ExistingProductRecommendations {
-    type Error = String;
+impl ExistingProductRecommendations {
 
-    fn try_from(dto: ExistingProductRecommendationsDto) -> Result<Self, Self::Error> {
+    pub async fn from_dto<R>(
+        dto: ExistingProductRecommendationsDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
         Ok(Self {
-            //recommended_product_charges: dto.recommended_product_charges.try_into()?,
-            product_retention: dto.product_retention.try_into()?,
-            //recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
-            //linked_objectives: dto.linked_objectives,
-            //recommendation_actions: dto.recommendation_actions.iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?
+            product_retention: ProductRetention::from_dto(dto.product_retention, repo).await?,
         })
     }
+
 }
+
+
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1331,18 +1705,43 @@ pub struct NewProductRecommendations {
     recommendation_actions: Vec<RecommendedAction>
 }
 
-impl TryFrom<NewProductRecommendationsDto> for NewProductRecommendations {
+impl TryFrom<(NewProductRecommendationsDto, InvestmentStrategy)> for NewProductRecommendations {
     type Error = String;
 
-    fn try_from(dto: NewProductRecommendationsDto) -> Result<Self, Self::Error> {
+    fn try_from((dto, investment_strategy): (NewProductRecommendationsDto, InvestmentStrategy)) -> Result<Self, Self::Error> {
         Ok(Self {
             rationale: dto.rationale.try_into()?,
             recommended_product_charges: dto.recommended_product_charges.try_into()?,
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            recommended_investment_strategy: investment_strategy,
             linked_objectives: dto.linked_objectives,
             recommendation_actions: dto.recommendation_actions.iter().map(|dto| dto.clone().try_into()).collect::<Result<_, _>>()?
         })
     }
+}
+
+impl NewProductRecommendations {
+
+    pub async fn from_dto<R>(
+        dto: NewProductRecommendationsDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio>
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.recommended_investment_strategy.clone(), repo)
+            .await?;
+
+        let iss  = (
+            dto,
+            investment_strategy
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(iss)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -1378,23 +1777,23 @@ impl TryFrom<OtherChargeDto> for OtherCharge {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct RecommendedInvestmentAndRiskStrategy {
-    recommended_investment_strategy: InvestmentStrategy,
-    risk_level: RiskProfile
-}
+// #[derive(Deserialize, Serialize, Debug, Clone)]
+// #[serde(rename_all = "camelCase")]
+// pub struct RecommendedInvestmentAndRiskStrategy {
+//     recommended_investment_strategy: InvestmentStrategy,
+//     risk_level: RiskProfile
+// }
 
-impl TryFrom<RecommendedInvestmentAndRiskStrategyDto> for RecommendedInvestmentAndRiskStrategy {
-    type Error = String;
+// impl TryFrom<RecommendedInvestmentAndRiskStrategyDto> for RecommendedInvestmentAndRiskStrategy {
+//     type Error = String;
 
-    fn try_from(dto: RecommendedInvestmentAndRiskStrategyDto) -> Result<Self, Self::Error> {
-        Ok(Self {
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
-            risk_level: dto.risk_level.try_into()?
-        })
-    }
-}
+//     fn try_from(dto: RecommendedInvestmentAndRiskStrategyDto) -> Result<Self, Self::Error> {
+//         Ok(Self {
+//             recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+//             risk_level: dto.risk_level.try_into()?
+//         })
+//     }
+// }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1487,16 +1886,27 @@ impl Default for ProductRetention {
     }
 }
 
-impl TryFrom<ProductRetentionDto> for ProductRetention {
-    type Error = String;
+impl ProductRetention {
 
-    fn try_from(dto: ProductRetentionDto) -> Result<Self, Self::Error> {
-        match dto {
-            ProductRetentionDto::Retain(retain_dto) => Ok(Self::Retain(retain_dto.try_into()?)),
-            ProductRetentionDto::Replace(replace_dto) => Ok(Self::Replace(replace_dto.try_into()?)),
-            ProductRetentionDto::FullyEncash(fully_encash_dto) => Ok(Self::FullyEncash(fully_encash_dto.try_into()?)),
-            //ProductRetentionDto::PartialTransfer(partial_transfer_dto) => Ok(Self::PartialTransfer(partial_transfer_dto.try_into()?)),
-        }
+    pub async fn from_dto<R>(
+        dto: ProductRetentionDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
+        Ok(
+            match dto {
+                ProductRetentionDto::Retain(inner_dto) => {
+                    let inner = Retain::from_dto(inner_dto, repo).await?;
+                    ProductRetention::Retain(inner)
+                } 
+                ProductRetentionDto::Replace(inner_dto) => Self::Replace(inner_dto.try_into()?),
+                
+                ProductRetentionDto::FullyEncash(inner_dto) => Self::FullyEncash(inner_dto.try_into()?),
+                
+            }
+        )
     }
 }
 
@@ -1729,14 +2139,19 @@ pub struct Retain {
     recommendation_actions: Option<Vec<RecommendedAction>>
 }
 
-impl TryFrom<RetainDto> for Retain {
-    type Error = String;
+impl Retain {
 
-    fn try_from(dto: RetainDto) -> Result<Self, Self::Error> {
+    pub async fn from_dto<R>(
+        dto: RetainDto,
+        repo: &R,
+    ) -> Result<Self, String>
+    where 
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync,
+    {
         Ok(Self {
             rationale: dto.rationale.try_into()?,
             recommended_product_charges: dto.recommended_product_charges.try_into()?,
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            recommended_investment_strategy: RealignOrRebalance::from_dto(dto.recommended_investment_strategy, repo).await?,
             linked_objectives: dto
                 .linked_objectives
                 .iter()
@@ -1786,15 +2201,31 @@ pub enum RealignOrRebalance {
     Rebalance(Rebalance)
 }
 
-impl TryFrom<RealignOrRebalanceDto> for RealignOrRebalance {
-    type Error = String;
+impl RealignOrRebalance {
 
-    fn try_from(dto: RealignOrRebalanceDto) -> Result<Self, Self::Error> {
-        match dto {
-            RealignOrRebalanceDto::Realign(realign_dto) => Ok(RealignOrRebalance::Realign(realign_dto.try_into()?)),
-            RealignOrRebalanceDto::Rebalance(rebalance_dto) => Ok(RealignOrRebalance::Rebalance(rebalance_dto.try_into()?)),
-        }
+    pub async fn from_dto<R>(
+        dto: RealignOrRebalanceDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio>
+    {
+
+        Ok(
+            match dto {
+                RealignOrRebalanceDto::Realign(inner_dto) => {
+                    let inner = Realign::from_dto(inner_dto, repo).await?;
+                    RealignOrRebalance::Realign(inner)
+                }
+                RealignOrRebalanceDto::Rebalance(inner_dto) => {
+                    let inner = Rebalance::from_dto(inner_dto, repo).await?;
+                    RealignOrRebalance::Rebalance(inner)
+                }
+            }
+        )
+
     }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -1804,15 +2235,40 @@ pub struct Realign {
     recommended_investment_strategy: InvestmentStrategy
 }
 
-impl TryFrom<RealignDto> for Realign {
+impl TryFrom<(RealignDto, InvestmentStrategy)> for Realign {
     type Error = String;
 
-    fn try_from(dto: RealignDto) -> Result<Self, Self::Error> {
-        Ok(Realign {
+    fn try_from((dto, investment_strategy): (RealignDto, InvestmentStrategy)) -> Result<Self, Self::Error> {
+        Ok(Self {
             rationale: dto.rationale.try_into()?,
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            recommended_investment_strategy: investment_strategy,
         })
     }
+}
+
+impl Realign {
+
+    pub async fn from_dto<R>(
+        dto: RealignDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio>
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.recommended_investment_strategy.clone(), repo)
+            .await?;
+
+        let rebalance  = (
+            dto,
+            investment_strategy
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(rebalance)
+
+    }
+
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -1822,15 +2278,40 @@ pub struct Rebalance {
     recommended_investment_strategy: InvestmentStrategy
 }
 
-impl TryFrom<RebalanceDto> for Rebalance {
+impl TryFrom<(RebalanceDto, InvestmentStrategy)> for Rebalance {
     type Error = String;
 
-    fn try_from(dto: RebalanceDto) -> Result<Self, Self::Error> {
-        Ok(Rebalance {
+    fn try_from((dto, investment_strategy): (RebalanceDto, InvestmentStrategy)) -> Result<Self, Self::Error> {
+        Ok(Self {
             rationale: dto.rationale.try_into()?,
-            recommended_investment_strategy: dto.recommended_investment_strategy.try_into()?,
+            recommended_investment_strategy: investment_strategy,
         })
     }
+}
+
+impl Rebalance {
+
+    pub async fn from_dto<R>(
+        dto: RebalanceDto,
+        repo: &R
+    ) -> Result<Self, String>
+    where
+        R: InvestmentPortfoliosRepository<InvestmentPortfolio>
+    {
+        let investment_strategy = InvestmentStrategy::from_dto(dto.recommended_investment_strategy.clone(), repo)
+            .await?;
+
+        let rebalance  = (
+            dto,
+            investment_strategy
+        )
+            .try_into()
+            .map_err(|e| e)?;
+
+        Ok(rebalance)
+
+    }
+
 }
 
 

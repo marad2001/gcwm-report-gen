@@ -1,11 +1,16 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::domain::constrained_types::{name_string::NameString, adviser::Adviser};
 use crate::domain::report::couple_new_report::couple_new_report_sections::CoupleNewReportSections;
 
 use crate::domain::DomainError;
+use crate::driven::repository::InvestmentPortfoliosRepository;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_new_report_dto::couple_new_report_sections_dto::CoupleNewReportSectionsDto;
+use crate::driving::data_transfer_object::report_type_data_transfer_object::couple_new_report_dto::CoupleNewReportDto;
 
+use super::investment_holdings::InvestmentPortfolio;
 use super::ReportError;
 
 
@@ -20,15 +25,16 @@ pub struct CoupleNewReport {
 }
 
 impl CoupleNewReport {
-    pub fn new(
+    pub async fn new<R>(
         unvalidated_individual_one_first_name: String,
         unvalidated_individual_one_last_name: String,
         unvalidated_individual_two_first_name: String,
         unvalidated_individual_two_last_name: String,
         unvalidated_adviser_first_name: String,
         unvalidated_adviser_last_name: String,
-        unvalidated_sections: CoupleNewReportSectionsDto
-    ) -> Result<Self, ReportError>{
+        unvalidated_sections: CoupleNewReportSectionsDto,
+        investment_portfolio_repo: &R
+    ) -> Result<Self, ReportError> where R: InvestmentPortfoliosRepository<InvestmentPortfolio> {
 
         let individual_one_first_name = NameString::try_from(unvalidated_individual_one_first_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
         let individual_one_last_name = NameString::try_from(unvalidated_individual_one_last_name).map_err(|e| ReportError::DomainError(DomainError::ValidationError(e.to_string())))?;
@@ -53,6 +59,26 @@ impl CoupleNewReport {
         Ok(Self {
             sections: couple_new_report_sections
         })
+
+    }
+
+    pub async fn from_dto<R>(
+        dto: CoupleNewReportDto,
+        investment_portfolio_repo: Arc<R>
+    ) -> Result<Self, ReportError> where R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Sync {
+
+        let couple_annual_review_report = CoupleNewReport::new(
+            dto.individual_one_first_name, 
+            dto.individual_one_last_name, 
+            dto.individual_two_first_name, 
+            dto.individual_two_last_name, 
+            dto.adviser.adviser_first_name, 
+            dto.adviser.adviser_last_name, 
+            dto.sections, 
+            investment_portfolio_repo.as_ref()
+        ).await?;
+
+        Ok(couple_annual_review_report)
 
     }
 }

@@ -1,15 +1,11 @@
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::traits::ClientRepoId;
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum ClientId {
     IoId(IoId),
     DynamoDbId
 }
-
-impl ClientRepoId for ClientId {}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct IoId(i32);
