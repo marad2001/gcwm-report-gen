@@ -98,9 +98,14 @@ where
             
                         let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
 
+                        todo!("REPLACE * WITH DOMAIN FOR SECURITY IN CORS");
+
                         let response = Response::builder()
                             .status(StatusCode::OK)
                             .header("Content-Type", "application/json")
+                            .header("Access-Control-Allow-Origin", "*")
+                            .header("Access-Control-Allow-Headers", "*")
+                            .header("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
                             .body(json!({
                                 "payload": report
                             }).to_string())
@@ -114,11 +119,17 @@ where
                             Ok(data_transfer_object) => {
                                 match data_transfer_object {
                                     Some(data_transfer_object) => {
+                                        
                                         let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
         
+                                        todo!("REPLACE * WITH DOMAIN FOR SECURITY IN CORS");
+
                                         let response = Response::builder()
                                             .status(StatusCode::OK)
                                             .header("Content-Type", "application/json")
+                                            .header("Access-Control-Allow-Origin", "*")
+                                            .header("Access-Control-Allow-Headers", "*")
+                                            .header("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
                                             .body(json!({
                                                 "payload": report
                                             }).to_string())
@@ -148,6 +159,9 @@ where
                                         let response = Response::builder()
                                             .status(StatusCode::OK)
                                             .header("Content-Type", "application/json")
+                                            .header("Access-Control-Allow-Origin", "*")
+                                            .header("Access-Control-Allow-Headers", "*")
+                                            .header("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
                                             .body(
                                                 format!(
                                                     "Json deserializing error category: {}, at line {} and column {}.", 
@@ -165,6 +179,9 @@ where
                                         let response = Response::builder()
                                             .status(StatusCode::OK)
                                             .header("Content-Type", "application/json")
+                                            .header("Access-Control-Allow-Origin", "*")
+                                            .header("Access-Control-Allow-Headers", "*")
+                                            .header("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
                                             .body(error.to_string())
                                             .map_err(Box::new)?;
                     
