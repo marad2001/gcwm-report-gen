@@ -69,14 +69,17 @@ impl fmt::Display for InvestmentStrategyProductTypeDto {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct VersionedPortfolioDto {
     pub id: ModelPortfolioIdDto,
-    pub effective_date: MonthYearDto,      // e.g. Aug2024
+    pub effective_date: MonthYearDto, // e.g. Aug2024
+    pub fund_charges: Option<f32>      
 }
 
 /// Bespoke portfolios don’t have an “id,” only the holdings & when they were created:
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BespokePortfolioDto {
     pub created: MonthYearDto,
-    pub portfolio: InvestmentPortfolioDto,
+    pub portfolio: BespokeInvestmentPortfolioDto,
+    pub fund_charges: Option<f32>,
+    pub risk_level: RiskProfileDto,  
 }
 
 /// Finally, an investment strategy is just *one* of those two:
@@ -92,12 +95,14 @@ pub enum InvestmentStrategyDto {
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InvestmentPortfolioDto {
-    pub risk_level: RiskProfileDto,
     pub fund_holdings: Vec<FundHoldingDto>,
-    pub fund_charges: Option<f32>
 }
 
-
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BespokeInvestmentPortfolioDto {
+    pub fund_holdings: Option<Vec<FundHoldingDto>>,
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

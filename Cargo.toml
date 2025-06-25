@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-lambda_http = "0.13.0"
 serde_json = "1.0.133"
 tokio = { version = "1", features = ["macros"] }
 serde = "1.0.216"
@@ -22,4 +21,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 aws-config = "1.6.2"
 aws-sdk-dynamodb = "1.73.0"
-openssl = { version = "0.10", features = ["vendored"] }
+
+
+ [dependencies.lambda_http]
+ version = "0.13.0"
+ default-features = false
+ features = ["apigw_http", "apigw_rest"]

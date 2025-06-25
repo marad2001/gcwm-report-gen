@@ -9,7 +9,7 @@ use crate::{
         isin::ISIN, percentage::Percentage, 
         sedol::Sedol
     }, find_model_portfolio::{self, find_one_model_portfolio, FindOneError}, traits::Entity}, driven::repository::{FindModelPortfolio, InvestmentPortfoliosRepository, RepoSelectError}, driving::data_transfer_object::report_type_data_transfer_object::investment_holdings::{
-        BespokePortfolioDto, FundHoldingDto, InvestmentPortfolioDto, InvestmentStrategyDto, InvestmentStrategyProductTypeDto, InvestmentStrategyProviderDto, InvestmentStrategyServicePropositionDto, ModelPortfolioIdDto, MonthYearDto, VersionedPortfolioDto
+        BespokeInvestmentPortfolioDto, BespokePortfolioDto, FundHoldingDto, InvestmentPortfolioDto, InvestmentStrategyDto, InvestmentStrategyProductTypeDto, InvestmentStrategyProviderDto, InvestmentStrategyServicePropositionDto, ModelPortfolioIdDto, MonthYearDto, VersionedPortfolioDto
     }
 };
 
@@ -144,7 +144,7 @@ where
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct BespokePortfolio {
     pub created: MonthYear,
-    pub portfolio: InvestmentPortfolio,
+    pub portfolio: BespokeInvestmentPortfolio,
 }
 
 impl TryFrom<BespokePortfolioDto> for BespokePortfolio {
@@ -221,23 +221,23 @@ impl InvestmentStrategy {
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InvestmentPortfolio {
-    risk_level: RiskProfile,
+    // risk_level: RiskProfile,
     fund_holdings: Vec<FundHolding>,
-    fund_charges: Percentage
+    // fund_charges: Percentage
 }
 
 impl Entity for InvestmentPortfolio {}
 
 impl InvestmentPortfolio {
-    pub fn risk_level(&self) -> &RiskProfile {
-        &self.risk_level
-    }
+    // pub fn risk_level(&self) -> &RiskProfile {
+    //     &self.risk_level
+    // }
     pub fn fund_holdings(&self) -> &Vec<FundHolding> {
         &self.fund_holdings
     }
-    pub fn fund_charges(&self) -> &Percentage {
-        &self.fund_charges
-    }
+    // pub fn fund_charges(&self) -> &Percentage {
+    //     &self.fund_charges
+    // }
 }
 
 impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
@@ -298,12 +298,115 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
         let fund_charges: Percentage = computed_charge.try_into()?;
 
         Ok(Self {
-            risk_level: dto.risk_level.try_into()?,
+            // risk_level: dto.risk_level.try_into()?,
             fund_holdings,
-            fund_charges,
+            // fund_charges,
         })
     }
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BespokeInvestmentPortfolio {
+    // risk_level: RiskProfile,
+    fund_holdings: Option<Vec<FundHolding>>,
+    // fund_charges: Percentage,
+}
+
+impl Entity for BespokeInvestmentPortfolio {}
+
+impl BespokeInvestmentPortfolio {
+    // pub fn risk_level(&self) -> &RiskProfile {
+    //     &self.risk_level
+    // }
+
+    /// Now returns the Option<Vec<FundHolding>> directly
+    pub fn fund_holdings(&self) -> Option<&[FundHolding]> {
+        self.fund_holdings.as_deref()
+    }
+
+    // pub fn fund_charges(&self) -> &Percentage {
+    //     &self.fund_charges
+    // }
+}
+
+impl TryFrom<BespokeInvestmentPortfolioDto> for BespokeInvestmentPortfolio {
+    type Error = String;
+
+    fn try_from(dto: BespokeInvestmentPortfolioDto) -> Result<Self, Self::Error> {
+        // 1) Always convert the risk_level
+        // let risk_level = dto.risk_level.try_into()?;
+
+        // 2) Branch on whether holdings are provided
+        let fund_holdings = match dto.fund_holdings {
+            Some(holdings_dto) => {
+                // a) convert each DTO into a domain FundHolding
+                let holdings: Vec<FundHolding> = holdings_dto
+                    .into_iter()
+                    .map(FundHolding::try_from)
+                    .collect::<Result<_, _>>()?;
+
+                // b) compute the weighted average charge
+                let total_charge: f32 = if holdings.iter().all(|fh| fh.percentage_of_portfolio.is_some()) {
+                    let sum_pct: f32 = holdings
+                        .iter()
+                        .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().value())
+                        .sum();
+                    if (sum_pct - 1.0).abs() > 0.01 {
+                        return Err("Fund‐holdings percentages must sum to 100%".into());
+                    }
+                    holdings
+                        .iter()
+                        .map(|fh| {
+                            let w = fh.percentage_of_portfolio.as_ref().unwrap().value();
+                            w * fh.fund_charge.value()
+                        })
+                        .sum()
+                } else if holdings.iter().all(|fh| fh.value.is_some()) {
+                    let total_val: f64 = holdings
+                        .iter()
+                        .map(|fh| fh.value.as_ref().unwrap().value())
+                        .sum();
+                    if total_val == 0.0 {
+                        return Err("Total fund holding value must be positive".into());
+                    }
+                    holdings
+                        .iter()
+                        .map(|fh| {
+                            let w = (fh.value.as_ref().unwrap().value() / total_val) as f32;
+                            w * fh.fund_charge.value()
+                        })
+                        .sum()
+                } else {
+                    return Err("All holdings must either have percentages or values".into());
+                };
+
+                // c) turn that into a Percentage
+                // let pct = Percentage::try_from(total_charge)?;
+
+                // (Some(holdings), pct)
+                Some(holdings)
+            }
+
+            None => {
+                // No holdings: dto.fund_charges must be supplied
+                // let raw_charge = dto
+                //     // .fund_charges
+                //     .ok_or_else(|| "fund_charges is required when no fund_holdings are present".to_string())?;
+                // let pct = Percentage::try_from(raw_charge)?;
+                // (None, pct)
+                None
+            }
+        };
+
+        Ok(BespokeInvestmentPortfolio {
+            // risk_level,
+            fund_holdings,
+            // fund_charges,
+        })
+    }
+}
+
 
 // impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
 //     type Error = String;

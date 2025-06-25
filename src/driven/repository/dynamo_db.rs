@@ -199,11 +199,11 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
         // 6) Assemble DTO → domain
         let ip_dto = InvestmentPortfolioDto {
-            risk_level: risk_level
-                .try_into()
-                .map_err(|e| RepoSelectError::Unknown(e))?,
+            // risk_level: risk_level
+            //     .try_into()
+            //     .map_err(|e| RepoSelectError::Unknown(e))?,
             fund_holdings: fund_holding_dtos,
-            fund_charges: portfolio_charges,
+            // fund_charges: portfolio_charges,
         };
         debug!(ip_dto = ?ip_dto, "Assembled InvestmentPortfolioDto");
 

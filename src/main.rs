@@ -18,6 +18,8 @@ mod helpers;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
 
+    dotenv().ok();
+
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .json()
@@ -43,8 +45,6 @@ where
     R: InvestmentPortfoliosRepository<InvestmentPortfolio> + Send + Sync + 'static + std::fmt::Debug,
 {
 
-    dotenv().ok();
-    
     info!(method = %event.method(), path = %event.uri(), "received request");
 
     let method = event.method();
@@ -55,18 +55,29 @@ where
         Production(Result<Option<DataTransferObject>, PayloadError>)
     }
 
-    let payload = if path_parameters.first("proxy") == Some("test") {
-        PayloadType::Test(helpers::test_helpers::create_mock_data_transfer_object())
-    } else {
-        match event.payload::<driving::data_transfer_object::DataTransferObject>() {
-            Ok(payload) => {
-                info!(payload = ?payload, "deserialized request payload");
-                PayloadType::Production(Ok(payload))
-            }
-            Err(payload_error) => {
-                error!(error = ?payload_error, "failed to deserialize request");
-                PayloadType::Production(Err(payload_error))
-            }
+    // let payload = if path_parameters.first("proxy") == Some("test") {
+    //     PayloadType::Test(helpers::test_helpers::create_mock_data_transfer_object())
+    // } else {
+    //     match event.payload::<driving::data_transfer_object::DataTransferObject>() {
+    //         Ok(payload) => {
+    //             info!(payload = ?payload, "deserialized request payload");
+    //             PayloadType::Production(Ok(payload))
+    //         }
+    //         Err(payload_error) => {
+    //             error!(error = ?payload_error, "failed to deserialize request");
+    //             PayloadType::Production(Err(payload_error))
+    //         }
+    //     }
+    // };
+
+    let payload = match event.payload::<driving::data_transfer_object::DataTransferObject>() {
+        Ok(payload) => {
+            info!(payload = ?payload, "deserialized request payload");
+            PayloadType::Production(Ok(payload))
+        }
+        Err(payload_error) => {
+            error!(error = ?payload_error, "failed to deserialize request");
+            PayloadType::Production(Err(payload_error))
         }
     };
 
