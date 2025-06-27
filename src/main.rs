@@ -98,7 +98,7 @@ where
             
                         let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
 
-                        todo!("REPLACE * WITH DOMAIN FOR SECURITY IN CORS");
+                        //"REPLACE * WITH DOMAIN FOR SECURITY IN CORS");
 
                         let response = Response::builder()
                             .status(StatusCode::OK)
@@ -122,7 +122,7 @@ where
                                         
                                         let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
         
-                                        todo!("REPLACE * WITH DOMAIN FOR SECURITY IN CORS");
+                                        //"REPLACE * WITH DOMAIN FOR SECURITY IN CORS"
 
                                         let response = Response::builder()
                                             .status(StatusCode::OK)
