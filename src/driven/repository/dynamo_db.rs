@@ -65,10 +65,10 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             find_model_portfolio.sri,
             find_model_portfolio.provider.to_string(),
             find_model_portfolio.product_type.to_string(),
-        );
+        ).to_uppercase();
         let pk_prefix = "INVESTMENTPORTFOLIO#";
         debug!(%sk, %pk_prefix, "Querying header row");
-        println!("Sk: {}, Pk Prefix{}", sk, pk_prefix);
+        println!("Sk: {}, Pk Prefix: {}", sk, pk_prefix);
 
         // 2) Query header row via sk-pk-index
         let mut header_eav = HashMap::new();
@@ -94,6 +94,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
         let headers = header_resp.items.unwrap_or_default();
         info!(count = headers.len(), "Header rows returned");
+        println!("Header rows returned: {:?}", headers);
         let header = match headers.len() {
             0 => {
                 info!("No portfolio header found");
@@ -131,11 +132,13 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
         info!(pk = %portfolio_pk, charges = ?portfolio_charges, risk = %risk_level, 
               "Parsed portfolio header");
+        println!("pk: {:?}, charges: {:?}, risk: {:?}", portfolio_pk, portfolio_charges, risk_level);
 
         // 4) Query all holdings by pk
         let mut holdings_eav = HashMap::new();
         holdings_eav.insert(":pk".to_string(), AttributeValue::S(portfolio_pk.clone()));
         debug!(?holdings_eav, "Holdings EAV map");
+        println!("Holdings map: {:?}", holdings_eav);
 
         let holdings_resp = self
             .client
@@ -152,6 +155,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
         let holding_items = holdings_resp.items.unwrap_or_default();
         info!(count = holding_items.len(), "Holding rows returned");
+        println!("Number holdings returned: {}", holding_items.len());
 
         // 5) Build DTOs
         let mut fund_holding_dtos = Vec::with_capacity(holding_items.len());
@@ -199,6 +203,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             debug!(dto = ?dto, "Parsed FundHoldingDto");
             fund_holding_dtos.push(dto);
         }
+        println!("Fund holdings dtos: {:?}", fund_holding_dtos);
 
         // 6) Assemble DTO → domain
         let ip_dto = InvestmentPortfolioDto {
@@ -209,6 +214,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             // fund_charges: portfolio_charges,
         };
         debug!(ip_dto = ?ip_dto, "Assembled InvestmentPortfolioDto");
+        println!("Investment Portfolio Dto: {:?}", ip_dto);
 
         let result = ip_dto
             .try_into()
@@ -218,6 +224,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             })?;
 
         info!("Successfully constructed InvestmentPortfolio domain object");
+        println!("Successfully constructed InvestmentPortfolio domain object");
         Ok(result)
     }
 }
