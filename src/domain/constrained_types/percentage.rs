@@ -21,10 +21,12 @@ impl TryFrom<f32> for Percentage {
 
     fn try_from(value: f32) -> Result<Self, Self::Error> {
         if value < 0.0 {
+            println!("Value received: {}", value);
             return Err("A percentage cannot be negative");
         }
 
         if value > 1.0 {
+            println!("Value received: {}", value);
             return Err("A percentage cannot exceed 1.0 (100%)");
         }
 
