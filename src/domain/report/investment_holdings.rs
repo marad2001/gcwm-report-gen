@@ -223,7 +223,7 @@ impl InvestmentStrategy {
 pub struct InvestmentPortfolio {
     // risk_level: RiskProfile,
     fund_holdings: Vec<FundHolding>,
-    // fund_charges: Percentage
+    fund_charges: Percentage
 }
 
 impl Entity for InvestmentPortfolio {}
@@ -256,24 +256,35 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
         // 1. If every FundHolding has a percentage_of_portfolio, use those.
         // 2. Otherwise, if every FundHolding has a value, compute weight = value / total_value.
         let computed_charge: f32 = if fund_holdings.iter().all(|fh| fh.percentage_of_portfolio.is_some()) {
+            
             // Use the provided percentages.
             let total_percentage: f32 = fund_holdings
                 .iter()
                 .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().as_fraction())
                 .sum();
             // Allow a small tolerance for floating‐point rounding.
+            println!("Total Percentage: {}", total_percentage);
             if (total_percentage - 1.0).abs() > 0.01 {
                 return Err("Fund holdings percentages do not sum to 100%".to_string());
             }
-            fund_holdings
+
+            let sum = fund_holdings
                 .iter()
                 .map(|fh| {
+                    println!("Fund weight percentage: {:?}", fh.percentage_of_portfolio.as_ref().unwrap().as_fraction());
                     let weight = fh.percentage_of_portfolio.as_ref().unwrap().as_fraction();
+                    println!("Fund charge percentage: {:?}", fh.percentage_of_portfolio.as_ref().unwrap().as_fraction());
                     let charge = fh.fund_charge.as_fraction();
+                    println!("Computed weighted charge: {:?}", weight * charge);
                     weight * charge
                 })
-                .sum()
+                .sum();
+            println!("Percentages provided Fund holdings total: {:?}", sum);
+            
+            sum
+            
         } else if fund_holdings.iter().all(|fh| fh.value.is_some()) {
+
             // Use the holding values to compute weights.
             let total_value: f64 = fund_holdings
                 .iter()
@@ -282,25 +293,35 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
             if total_value == 0.0 {
                 return Err("Total fund holding value must be positive".to_string());
             }
-            fund_holdings
+
+            let sum = fund_holdings
                 .iter()
                 .map(|fh| {
+                    println!("Computed weight based on value percentage: {:?}", (fh.value.as_ref().unwrap().value() / total_value) as f32);
                     let weight = (fh.value.as_ref().unwrap().value() / total_value) as f32;
+                    println!("Fund charge percentage: {:?}", fh.percentage_of_portfolio.as_ref().unwrap().as_fraction());
                     let charge = fh.fund_charge.as_fraction();
+                    println!("Computed weighted charge: {:?}", weight * charge);
                     weight * charge
                 })
-                .sum()
+                .sum();
+
+            println!("Values provided Fund holdings total: {:?}", sum);
+
+            sum
+
         } else {
             return Err("Fund holdings must either all have percentages or all have values".to_string());
         };
 
+        println!("Computed charge: {:?}", computed_charge);
         // Convert the computed f32 into a Percentage (using its TryFrom implementation).
         let fund_charges: Percentage = computed_charge.try_into()?;
 
         Ok(Self {
             // risk_level: dto.risk_level.try_into()?,
             fund_holdings,
-            // fund_charges,
+            fund_charges,
         })
     }
 }
@@ -407,72 +428,6 @@ impl TryFrom<BespokeInvestmentPortfolioDto> for BespokeInvestmentPortfolio {
     }
 }
 
-
-// impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
-//     type Error = String;
-
-//     fn try_from(db: InvestmentPortfolioDto) -> Result<Self, Self::Error> {
-//         // Convert each FundHoldingdb into FundHolding.
-//         let fund_holdings: Vec<FundHolding> = db
-//             .fund_holdings
-//             .into_iter()
-//             .map(FundHolding::try_from)
-//             .collect::<Result<_, _>>()?;
-        
-//         // Compute the weighted average fund charge.
-//         // We can compute the weight in one of two ways:
-//         // 1. If every FundHolding has a percentage_of_portfolio, use those.
-//         // 2. Otherwise, if every FundHolding has a value, compute weight = value / total_value.
-//         let computed_charge: f32 = if fund_holdings.iter().all(|fh| fh.percentage_of_portfolio.is_some()) {
-//             // Use the provided percentages.
-//             let total_percentage: f32 = fund_holdings
-//                 .iter()
-//                 .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().value())
-//                 .sum();
-//             // Allow a small tolerance for floating‐point rounding.
-//             if (total_percentage - 1.0).abs() > 0.01 {
-//                 return Err("Fund holdings percentages do not sum to 100%".to_string());
-//             }
-//             fund_holdings
-//                 .iter()
-//                 .map(|fh| {
-//                     let weight = fh.percentage_of_portfolio.as_ref().unwrap().value();
-//                     let charge = fh.fund_charge.value();
-//                     weight * charge
-//                 })
-//                 .sum()
-//         } else if fund_holdings.iter().all(|fh| fh.value.is_some()) {
-//             // Use the holding values to compute weights.
-//             let total_value: f64 = fund_holdings
-//                 .iter()
-//                 .map(|fh| fh.value.as_ref().unwrap().value())
-//                 .sum();
-//             if total_value == 0.0 {
-//                 return Err("Total fund holding value must be positive".to_string());
-//             }
-//             fund_holdings
-//                 .iter()
-//                 .map(|fh| {
-//                     let weight = (fh.value.as_ref().unwrap().value() / total_value) as f32;
-//                     let charge = fh.fund_charge.value();
-//                     weight * charge
-//                 })
-//                 .sum()
-//         } else {
-//             return Err("Fund holdings must either all have percentages or all have values".to_string());
-//         };
-
-//         // Convert the computed f32 into a Percentage (using its TryFrom implementation).
-//         let fund_charges: Percentage = computed_charge.try_into()?;
-
-//         Ok(Self {
-//             risk_level: db.risk_level.try_into()?,
-//             fund_holdings,
-//             fund_charges,
-//         })
-//     }
-// }
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum MonthYear {
@@ -510,6 +465,8 @@ impl TryFrom<FundHoldingDto> for FundHolding {
     type Error = String;
 
     fn try_from(dto: FundHoldingDto) -> Result<Self, Self::Error> {
+
+        println!("FundHoldingDto provided for conversion: {:?}", dto);
 
         if dto.value.is_none() && dto.percentage_of_portfolio.is_none() {
             return Err("A fund holding must have either a value or a percentage of the portoflio".to_string())
