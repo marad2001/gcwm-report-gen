@@ -87,6 +87,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             .send()
             .await
             .map_err(|e| {
+                println!("Query error: {}", e.clone());
                 error!(error = %e, "Failed to query header");
                 RepoSelectError::Unknown(e.to_string())
             })?;
