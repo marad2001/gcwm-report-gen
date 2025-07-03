@@ -176,14 +176,8 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
                     .get("sk")
                     .and_then(|v| v.as_s().ok())
                     .map(String::from),
-                sedol: item
-                    .get("sedol")
-                    .and_then(|v| v.as_s().ok())
-                    .map(String::from),
-                value: item
-                    .get("value")
-                    .and_then(|v| v.as_n().ok())
-                    .and_then(|s| s.parse::<f64>().ok()),
+                sedol: None,
+                value: None,
                 percentage_of_portfolio: item
                     .get("percentageOfPortfolio")
                     .and_then(|v| v.as_n().ok())
