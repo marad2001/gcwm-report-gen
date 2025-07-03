@@ -155,6 +155,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
         let holding_items = holdings_resp.items.unwrap_or_default();
         info!(count = holding_items.len(), "Holding rows returned");
+        println!("Holding items: {:?}", holding_items);
         println!("Number holdings returned: {}", holding_items.len());
 
         // 5) Build DTOs
@@ -168,7 +169,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
 
             let dto = FundHoldingDto {
                 fund_name: item
-                    .get("fundName")
+                    .get("generic")
                     .and_then(|v| v.as_s().ok())
                     .map(String::from)
                     .ok_or_else(|| {
