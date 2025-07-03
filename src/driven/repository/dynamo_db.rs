@@ -68,12 +68,14 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
         );
         let pk_prefix = "INVESTMENTPORTFOLIO#";
         debug!(%sk, %pk_prefix, "Querying header row");
+        println!(%sk, %pk_prefix, "Querying header row");
 
         // 2) Query header row via sk-pk-index
         let mut header_eav = HashMap::new();
         header_eav.insert(":sk".to_string(),        AttributeValue::S(sk.clone()));
         header_eav.insert(":pk_prefix".to_string(), AttributeValue::S(pk_prefix.into()));
         debug!(?header_eav, "Header EAV map");
+        println!(?header_eav, "Header EAV map");
 
         let header_resp = self
             .client
