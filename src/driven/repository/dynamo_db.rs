@@ -145,6 +145,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("pk = :pk")
+            .filter_expression("attribute_exists(fundCharge)")
             .set_expression_attribute_values(Some(holdings_eav))
             .send()
             .await
@@ -161,11 +162,6 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
         // 5) Build DTOs
         let mut fund_holding_dtos = Vec::with_capacity(holding_items.len());
         for item in holding_items {
-            // skip header row if it appears here too
-            if item.get("sk") == Some(&AttributeValue::S(sk.clone())) {
-                debug!("Skipping header row in holdings");
-                continue;
-            }
 
             let dto = FundHoldingDto {
                 fund_name: item
@@ -177,7 +173,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
                         RepoSelectError::Unknown("Missing fundName".into())
                     })?,
                 isin: item
-                    .get("isin")
+                    .get("sk")
                     .and_then(|v| v.as_s().ok())
                     .map(String::from),
                 sedol: item
