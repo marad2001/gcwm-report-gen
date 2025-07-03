@@ -259,7 +259,7 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
             // Use the provided percentages.
             let total_percentage: f32 = fund_holdings
                 .iter()
-                .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().value())
+                .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().as_fraction())
                 .sum();
             // Allow a small tolerance for floating‐point rounding.
             if (total_percentage - 1.0).abs() > 0.01 {
@@ -268,8 +268,8 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
             fund_holdings
                 .iter()
                 .map(|fh| {
-                    let weight = fh.percentage_of_portfolio.as_ref().unwrap().value();
-                    let charge = fh.fund_charge.value();
+                    let weight = fh.percentage_of_portfolio.as_ref().unwrap().as_fraction();
+                    let charge = fh.fund_charge.as_fraction();
                     weight * charge
                 })
                 .sum()
@@ -286,7 +286,7 @@ impl TryFrom<InvestmentPortfolioDto> for InvestmentPortfolio {
                 .iter()
                 .map(|fh| {
                     let weight = (fh.value.as_ref().unwrap().value() / total_value) as f32;
-                    let charge = fh.fund_charge.value();
+                    let charge = fh.fund_charge.as_fraction();
                     weight * charge
                 })
                 .sum()
@@ -350,7 +350,7 @@ impl TryFrom<BespokeInvestmentPortfolioDto> for BespokeInvestmentPortfolio {
                 let total_charge: f32 = if holdings.iter().all(|fh| fh.percentage_of_portfolio.is_some()) {
                     let sum_pct: f32 = holdings
                         .iter()
-                        .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().value())
+                        .map(|fh| fh.percentage_of_portfolio.as_ref().unwrap().as_fraction())
                         .sum();
                     if (sum_pct - 1.0).abs() > 0.01 {
                         return Err("Fund‐holdings percentages must sum to 100%".into());
@@ -358,8 +358,8 @@ impl TryFrom<BespokeInvestmentPortfolioDto> for BespokeInvestmentPortfolio {
                     holdings
                         .iter()
                         .map(|fh| {
-                            let w = fh.percentage_of_portfolio.as_ref().unwrap().value();
-                            w * fh.fund_charge.value()
+                            let w = fh.percentage_of_portfolio.as_ref().unwrap().as_fraction();
+                            w * fh.fund_charge.as_fraction()
                         })
                         .sum()
                 } else if holdings.iter().all(|fh| fh.value.is_some()) {
@@ -374,7 +374,7 @@ impl TryFrom<BespokeInvestmentPortfolioDto> for BespokeInvestmentPortfolio {
                         .iter()
                         .map(|fh| {
                             let w = (fh.value.as_ref().unwrap().value() / total_val) as f32;
-                            w * fh.fund_charge.value()
+                            w * fh.fund_charge.as_fraction()
                         })
                         .sum()
                 } else {
