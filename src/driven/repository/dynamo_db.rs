@@ -68,14 +68,14 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
         );
         let pk_prefix = "INVESTMENTPORTFOLIO#";
         debug!(%sk, %pk_prefix, "Querying header row");
-        println!(%sk, %pk_prefix, "Querying header row");
+        println!("Sk: {}, Pk Prefix{}", sk, pk_prefix);
 
         // 2) Query header row via sk-pk-index
         let mut header_eav = HashMap::new();
         header_eav.insert(":sk".to_string(),        AttributeValue::S(sk.clone()));
         header_eav.insert(":pk_prefix".to_string(), AttributeValue::S(pk_prefix.into()));
         debug!(?header_eav, "Header EAV map");
-        println!(?header_eav, "Header EAV map");
+        println!("Header EAV map: {:?}", header_eav);
 
         let header_resp = self
             .client
@@ -87,7 +87,7 @@ impl InvestmentPortfoliosRepository<InvestmentPortfolio> for InvestmentPortfolio
             .send()
             .await
             .map_err(|e| {
-                println!("Query error: {}", e.clone());
+                println!("Query error: {:?}", e);
                 error!(error = %e, "Failed to query header");
                 RepoSelectError::Unknown(e.to_string())
             })?;
