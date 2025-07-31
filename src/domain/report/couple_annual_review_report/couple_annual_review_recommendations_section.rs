@@ -16,7 +16,7 @@ use crate::driving::data_transfer_object::report_type_data_transfer_object::advi
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CoupleAnnualReviewReportRecommendationsSection {
     introductory_paragraph: String,
-    product_recommendations: HashMap<String, Vec<ProductRecommendationText>>,
+    product_recommendations: HashMap<String, ProductRecommendationsText>,
     other_advice_areas: HashMap<String, Vec<(String, String)>> 
 }
 
@@ -88,9 +88,9 @@ impl CoupleAnnualReviewReportRecommendationsSection {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum ProductRecommendationText {
-   ExistingProductRecommendationsText(ExistingProductRecommendationText),
-   NewProductRecommendationsText(NewProductRecommendationText) 
+pub struct ProductRecommendationsText {
+   existing: Option<Vec<ExistingProductRecommendationText>>,
+   new: Option<Vec<NewProductRecommendationText>> 
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

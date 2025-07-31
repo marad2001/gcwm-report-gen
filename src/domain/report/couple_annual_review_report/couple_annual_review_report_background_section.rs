@@ -7,11 +7,15 @@ use crate::domain::report::background_section::{MeetingLocation, AdditionalMeeti
 
 use crate::helpers::text_helpers::create_background_text;
 
+// #[derive(Deserialize, Serialize, Debug, Clone)]
+// #[serde(rename_all = "camelCase")]
+// pub struct CoupleAnnualReviewReportBackgroundSection {
+//     background: String
+// }
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CoupleAnnualReviewReportBackgroundSection {
-    background: String
-}
+pub struct CoupleAnnualReviewReportBackgroundSection(String);
 
 impl CoupleAnnualReviewReportBackgroundSection {
 
@@ -20,7 +24,7 @@ impl CoupleAnnualReviewReportBackgroundSection {
             dto,
             "It was lovely to see you",
         )?;
-        Ok(Self { background })
+        Ok(Self(background))
     }
 
 }
