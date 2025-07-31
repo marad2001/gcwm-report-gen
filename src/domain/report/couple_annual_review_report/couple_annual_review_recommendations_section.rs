@@ -16,7 +16,7 @@ use crate::driving::data_transfer_object::report_type_data_transfer_object::advi
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CoupleAnnualReviewReportRecommendationsSection {
     introductory_paragraph: String,
-    product_recommendations: HashMap<String, ProductRecommendationsText>,
+    product_recommendations: HashMap<String, Vec<ProductRecommendationsText>>,
     other_advice_areas: HashMap<String, Vec<(String, String)>> 
 }
 
@@ -88,13 +88,13 @@ impl CoupleAnnualReviewReportRecommendationsSection {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ProductRecommendationsText {
-   existing: Option<Vec<ExistingProductRecommendationText>>,
-   new: Option<Vec<NewProductRecommendationText>> 
+pub enum ProductRecommendationsText {
+   Existing(ExistingProductRecommendationsText),
+   New(NewProductRecommendationsText) 
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct ExistingProductRecommendationText {
+pub struct ExistingProductRecommendationsText {
     platform_number: Option<PlatformAccountNumberType>,
     account_or_refence_number: AccountOrReferenceNumberType,
     product_title: String,
@@ -104,7 +104,7 @@ pub struct ExistingProductRecommendationText {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct NewProductRecommendationText {
+pub struct NewProductRecommendationsText {
     platform_number: Option<PlatformAccountNumberType>,
     product_title: String,
     new_product_initial_sentence: String,
@@ -148,7 +148,7 @@ fn create_other_advice_area(advice_area: &AdviceArea) -> (String, String) {
 }
 
 fn create_product_recommendations(
-    product_recommendations: &mut HashMap<String, Vec<ProductRecommendationText>>,
+    product_recommendations: &mut HashMap<String, Vec<ProductRecommendationsText>>,
     client_key: &str,
     advice_areas_and_products: &Option<AdviceAreasAndProducts>,
     objectives: &HashMap<String, ObjectiveType>
@@ -161,7 +161,7 @@ fn create_product_recommendations(
             let new_products = products.new_products();
 
             // Try collecting all existing product recommendations text, returning an error if any fail
-            let existing_product_recommendations: Vec<ProductRecommendationText> = create_existing_products_recommendation_text(
+            let existing_product_recommendations: Vec<ProductRecommendationsText> = create_existing_products_recommendation_text(
                 &all_products_by_account_number, 
                 &existing_products,
                 objectives
@@ -173,7 +173,7 @@ fn create_product_recommendations(
                 .or_insert_with(Vec::new)
                 .extend(existing_product_recommendations);
 
-            let new_product_recommendations: Vec<ProductRecommendationText> = create_new_products_recommendation_text(
+            let new_product_recommendations: Vec<ProductRecommendationsText> = create_new_products_recommendation_text(
                 &new_products
             )?;
 
@@ -193,7 +193,7 @@ fn create_existing_products_recommendation_text(
     all_products_by_account_number: &HashMap<String, &ExistingNewJointSingleProduct>,
     existing_products: &Vec<ExistingProduct>,
     objectives: &HashMap<String, ObjectiveType>
-) -> Result<Vec<ProductRecommendationText>, String> {
+) -> Result<Vec<ProductRecommendationsText>, String> {
     existing_products
         .iter()
         .map(|existing_product|create_existing_product_recommendation_text
@@ -208,7 +208,7 @@ fn create_existing_products_recommendation_text(
 
 fn create_new_products_recommendation_text(
     new_products: &Vec<NewProduct>,
-) -> Result<Vec<ProductRecommendationText>, String> {
+) -> Result<Vec<ProductRecommendationsText>, String> {
     new_products
         .iter()
         .map(|new_product| create_new_product_recommendation_text(
@@ -221,8 +221,8 @@ fn create_existing_product_recommendation_text(
     all_products_by_account_number_or_reference_number: &HashMap<String, &ExistingNewJointSingleProduct>,
     existing_product_requiring_text: &ExistingProduct,
     objectives_by_id: &HashMap<String, ObjectiveType>
-) -> Result<ProductRecommendationText, String> {
-    Ok(ProductRecommendationText::ExistingProductRecommendationsText( ExistingProductRecommendationText {
+) -> Result<ProductRecommendationsText, String> {
+    Ok(ProductRecommendationsText::Existing( ExistingProductRecommendationsText {
         platform_number: existing_product_requiring_text.platform_account_number().clone(),
         account_or_refence_number: existing_product_requiring_text.account_or_reference_number().clone(),
         product_title: create_existing_product_recommendation_text_title(existing_product_requiring_text),
@@ -238,8 +238,8 @@ fn create_existing_product_recommendation_text(
 
 fn create_new_product_recommendation_text(
     new_product_requiring_text: &NewProduct
-) -> Result<ProductRecommendationText, String> {
-    Ok(ProductRecommendationText::NewProductRecommendationsText( NewProductRecommendationText {
+) -> Result<ProductRecommendationsText, String> {
+    Ok(ProductRecommendationsText::New( NewProductRecommendationsText {
         platform_number: new_product_requiring_text.platform_account_number().clone(),
         product_title: create_new_product_recommendation_title_text(new_product_requiring_text),
         new_product_initial_sentence: create_new_product_initial_sentence(new_product_requiring_text),

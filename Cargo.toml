@@ -28,3 +28,6 @@ openssl = { version = "0.10", features = ["vendored"] }
 version = "0.13.0"
 default-features = false
 features = ["apigw_rest"]
+
+[toolchain]
+channel = "stable"
