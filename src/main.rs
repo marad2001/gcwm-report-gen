@@ -1,13 +1,15 @@
 use domain::report::investment_holdings::InvestmentPortfolio;
 use driven::repository::{dynamo_db::{self, InvestmentPortfolioDynamoDbRepo}, InvestmentPortfoliosRepository};
 use driving::data_transfer_object::{self, DataTransferObject};
-use lambda_http::{ext::PayloadError, http::{Response, StatusCode}, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
+use lambda_http::{ext::PayloadError, http::{Response, StatusCode}, lambda_runtime, run, service_fn, Error, IntoResponse, Request, RequestExt, RequestPayloadExt};
 use tracing::{info, warn, error, instrument};
 use tracing_subscriber::{fmt, EnvFilter};
 use serde_json::{error::Category, json};
 use http::Method;
 use dotenv::dotenv;
 use std::sync::Arc;
+
+use crate::driven::doc_generator::{lambda::AwsLambdaDocGenerator, DocumentGenerator};
 
 mod domain;
 mod driven;
@@ -120,8 +122,28 @@ where
                                 match data_transfer_object {
                                     Some(data_transfer_object) => {
                                         
-                                        let report = domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?;
+                                        // Create report text, tables and apply domain logic ready to be sent to a document generator resposible for
+                                        // creating the the document, applying formatting and presentation etc 
+
+                                        let document_instructions = serde_json::to_value(
+                                            domain::report::create_report::create_report(data_transfer_object.report_type, investment_portfolio_repo).await?
+                                        ).map_err(|e| {
+                                            e
+                                        })?;
         
+                                        // Call document generator here.  On successully completion a presigned url for downloading the document
+                                        // will be included in the response
+                                        
+                                        let doc_gen = AwsLambdaDocGenerator::new("docx_generator").await;
+                                        let download_url = doc_gen
+                                            .generate(&document_instructions)
+                                            .await
+                                            .map_err(|e| {
+                                                lambda_runtime::Error::from(e)
+                                            })?;
+
+                                        // Respond to the calling api with the presigned url on successful completion.
+
                                         //"REPLACE * WITH DOMAIN FOR SECURITY IN CORS"
 
                                         let response = Response::builder()
@@ -131,7 +153,7 @@ where
                                             .header("Access-Control-Allow-Headers", "*")
                                             .header("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
                                             .body(json!({
-                                                "payload": report
+                                                "payload": download_url
                                             }).to_string())
                                             .map_err(Box::new)?;
                 

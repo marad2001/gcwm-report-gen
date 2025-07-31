@@ -21,8 +21,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 aws-config = "1.6.2"
 aws-sdk-dynamodb = "1.73.0"
+aws-sdk-lambda   = "1.100.0"
+aws-smithy-types = "1.3.2"
 openssl = { version = "0.10", features = ["vendored"] }
-
 
 [dependencies.lambda_http]
 version = "0.13.0"
