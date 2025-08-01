@@ -11,7 +11,7 @@ pub enum RecommendationsSection {
     //NewReportRecommendationsSection(NewReportRecommendationsSection)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CoupleAdviceAreasAndProducts {
     pub client_1: Option<AdviceAreasAndProducts>,
@@ -75,7 +75,7 @@ impl CoupleAdviceAreasAndProducts {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AdviceAreasAndProducts {
     pub advice_areas: Option<AdviceAreas>,
