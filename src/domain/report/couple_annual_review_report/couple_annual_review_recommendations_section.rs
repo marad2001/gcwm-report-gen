@@ -14,6 +14,7 @@ use crate::driven::repository::InvestmentPortfoliosRepository;
 use crate::driving::data_transfer_object::report_type_data_transfer_object::advice_areas_and_products_dto::CoupleAdviceAreasAndProductsDto;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CoupleAnnualReviewReportRecommendationsSection {
     introductory_paragraph: String,
     product_recommendations: HashMap<String, Vec<ProductRecommendationsText>>,

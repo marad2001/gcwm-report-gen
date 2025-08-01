@@ -12,6 +12,7 @@ pub enum RecommendationsSection {
 }
 
 #[derive(Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CoupleAdviceAreasAndProducts {
     pub client_1: Option<AdviceAreasAndProducts>,
     pub client_2: Option<AdviceAreasAndProducts>,
@@ -75,6 +76,7 @@ impl CoupleAdviceAreasAndProducts {
 }
 
 #[derive(Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AdviceAreasAndProducts {
     pub advice_areas: Option<AdviceAreas>,
     pub products: Option<Products>
