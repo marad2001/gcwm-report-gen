@@ -58,10 +58,7 @@ impl DocumentGenerator for AwsLambdaDocGenerator {
             .payload(Blob::new(bytes))                         // Blob from aws-smithy-types :contentReference[oaicite:2]{index=2}
             .send()
             .await
-            .map_err(|e| {
-                error!("InvokeFunction failed at the SDK level: {}", e);
-                DocGenError::InvocationError(e.to_string())
-            })?;
+            .map_err(|e| DocGenError::InvocationError(e.to_string()))?;
 
         if let Some(tail) = response.log_result {
             let decoded = BASE64_STANDARD.decode(&tail).unwrap_or_default();

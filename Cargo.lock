@@ -961,6 +961,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
  "aws-sdk-lambda",
+ "aws-smithy-http",
  "aws-smithy-types",
  "base64 0.21.7",
  "chrono",
